@@ -1,0 +1,6 @@
+<!doctype html><meta charset="utf-8">
+<h1>予約フォーム</h1>
+<form method="post">{% csrf_token %}
+  <label>名前: <input name="name" required></label>
+  <button type="submit">予約する</button>
+</form>

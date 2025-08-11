@@ -1,3 +1,5 @@
 from django.contrib import admin
+from .models import Reservation
 
-# Register your models here.
+# 管理画面に表示できるように登録
+admin.site.register(Reservation)

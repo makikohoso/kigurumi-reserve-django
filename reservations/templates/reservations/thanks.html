@@ -1,35 +1,81 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>予約完了</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約完了 - 予約システム</title>
+    
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS の CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      document.addEventListener("dblclick", function(e){ e.preventDefault();}, { passive: false });
+    </script>
     <style>
-        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 20px; text-align: center; }
-        .success { color: #4caf50; margin: 20px 0; }
-        .details { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        a { 
-            display: inline-block; 
-            background: #007cba; 
-            color: white; 
-            padding: 10px 20px; 
-            text-decoration: none; 
-            border-radius: 4px; 
-            margin-top: 20px; 
-        }
-        a:hover { background: #005a87; }
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
     </style>
 </head>
-<body>
-    <h1 class="success">予約ありがとうございます！</h1>
-    
-    <div class="details">
-        <h2>予約詳細</h2>
-        <p><strong>お名前:</strong> {{ name }} 様</p>
-        <p><strong>予約日:</strong> {{ date|date:"Y年m月d日" }}</p>
-        <p><strong>レンタル物品:</strong> {{ item.name }}</p>
+<body class="bg-zinc-100 text-zinc-600">
+    <!-- アプリ本体 -->
+    <div id="app" class="container mx-auto px-4 py-8 max-w-5xl">
+        <div class="flex justify-between items-center mb-4 md:mb-8">
+            <h1 class="text-xl md:text-3xl sm:text-2xl font-bold">予約システム</h1>
+            <div class="flex gap-2">
+                <a href="/reservations/" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    予約状況確認
+                </a>
+                <a href="/admin/" class="text-sm text-cyan-600 hover:underline px-3 py-2">管理画面</a>
+            </div>
+        </div>
+        
+        <!-- 完了メッセージ部分 -->
+        <div class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] py-6 px-4 md:py-6 md:px-6 text-center">
+            <div class="mb-6">
+                <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-bold text-green-600 mb-4">予約ありがとうございます！</h2>
+                <p class="text-sm md:text-base text-zinc-600">予約が正常に完了いたしました</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 md:p-6 mb-6 text-left max-w-md mx-auto">
+                <h3 class="text-lg font-semibold text-zinc-700 mb-4 text-center">予約詳細</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-zinc-600">お名前:</span>
+                        <span class="text-zinc-800">{{ name }} 様</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-zinc-600">予約日:</span>
+                        <span class="text-zinc-800">{{ date|date:"Y年m月d日" }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-zinc-600">レンタル物品:</span>
+                        <span class="text-zinc-800">{{ item.name }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <a href="/" class="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 md:py-4 px-6 md:px-8 text-sm md:text-base rounded-lg transition shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                もう一度予約する
+            </a>
+        </div>
     </div>
-    
-    <a href="/">もう一度予約する</a>
 </body>
 </html>

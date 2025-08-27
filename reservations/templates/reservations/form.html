@@ -1,58 +1,119 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>予約フォーム</title>
+    <meta charset="UTF-8">
+    <title>予約システム</title>
+    
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind CSS の CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      document.addEventListener("dblclick", function(e){ e.preventDefault();}, { passive: false });
+    </script>
     <style>
-        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="date"], select { 
-            padding: 8px; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            font-size: 16px; 
-            width: 266px;
+      .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      /* プルダウン選択メニューのスタイル調整 */
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.5rem;
+      }
+
+      /* ブラウザ固有のスタイル調整 */
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.5rem;
+      }
+
+      /* Firefox用の追加調整 */
+      @supports (-moz-appearance: none) {
+        select {
+          text-indent: 0.01px;
+          text-overflow: '';
         }
-        button { 
-            background: #007cba; 
-            color: white; 
-            padding: 10px 20px; 
-            border: none; 
-            border-radius: 4px; 
-            font-size: 16px; 
-            cursor: pointer; 
+      }
+
+      /* Safari用の追加調整 */
+      @supports (-webkit-appearance: none) {
+        select {
+          border-radius: 5px;
         }
-        button:hover { background: #005a87; }
+      }
     </style>
 </head>
-<body>
-    <h1>予約フォーム</h1>
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="item">レンタル物品:</label>
-            <select id="item" name="item" required>
-                <option value="">選択してください</option>
-                {% for item in items %}
-                    <option value="{{ item.id }}">{{ item.name }}</option>
-                {% endfor %}
-            </select>
+<body class="bg-zinc-100 text-zinc-600">
+    <!-- アプリ本体 -->
+    <div id="app" class="container mx-auto px-4 py-8 max-w-5xl">
+        <div class="flex justify-between items-center mb-4 md:mb-8">
+            <h1 class="text-xl md:text-3xl sm:text-2xl font-bold">予約システム</h1>
+            <div class="flex gap-2">
+                <a href="/reservations/" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    予約状況確認
+                </a>
+                <a href="/admin/" class="text-sm text-cyan-600 hover:underline px-3 py-2">管理画面</a>
+            </div>
         </div>
         
-        <div class="form-group">
-            <label for="date">予約日:</label>
-            <input type="date" id="date" name="date" required>
+        <!-- 予約フォーム部分 -->
+        <div class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] py-6 px-4 md:py-6 md:px-6">
+            <h2 class="text-xl sm:text-2xl font-bold text-center text-cyan-500 mb-4 sm:mb-5 md:mb-6">予約フォーム</h2>
+            {% if error %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {{ error }}
+                </div>
+            {% endif %}
+            <form method="post" class="space-y-5 sm:space-y-6">
+                {% csrf_token %}
+                <div>
+                    <label for="item" class="block font-semibold mb-2 text-sm md:text-base">レンタル物品 *</label>
+                    <select id="item" name="item" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
+                        <option value="">選択してください</option>
+                        {% for item in items %}
+                            <option value="{{ item.id }}">{{ item.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="date" class="block font-semibold mb-2 text-sm md:text-base">予約日 *</label>
+                    <input type="date" id="date" name="date" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
+                </div>
+                
+                <div>
+                    <label for="name" class="block font-semibold mb-2 text-sm md:text-base">名前 *</label>
+                    <input type="text" id="name" name="name" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 h-12 md:h-auto" placeholder="予約者名">
+                </div>
+                
+                <button type="submit" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">予約する</button>
+                
+                <div id="message" class="mt-4 text-center hidden text-sm md:text-base"></div>
+            </form>
         </div>
-        
-        <div class="form-group">
-            <label for="name">名前:</label>
-            <input type="text" id="name" name="name" required>
-        </div>
-        
-        <button type="submit">予約する</button>
-    </form>
+    </div>
 
     <script>
         // 今日から1年後までの日付範囲を設定

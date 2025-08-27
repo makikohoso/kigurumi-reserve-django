@@ -176,17 +176,19 @@ def reserve_form(request):
                 
         if errors:
             items = RentalItem.objects.filter(is_active=True)
+            # エラー時は入力された値を保持
+            form_data = {
+                "name": name or "",
+                "phone": phone or "",
+                "email": email or "",
+                "date": date_str or "",  # 入力された日付を保持
+                "item": item_id or "",
+                "notes": notes or ""
+            }
             return render(request, "reservations/form.html", {
                 "items": items,
                 "errors": errors,
-                "form_data": {
-                    "name": name,
-                    "phone": phone,
-                    "email": email,
-                    "date": date_str,
-                    "item": item_id,
-                    "notes": notes
-                }
+                "form_data": form_data
             })
     
     # 利用可能なレンタル物品を取得

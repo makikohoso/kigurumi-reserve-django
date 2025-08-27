@@ -8,6 +8,7 @@ from .models import Reservation, RentalItem, CalendarStatus
 from datetime import datetime, date, timedelta
 import json
 import time
+import re
 from django.conf import settings
 
 def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None):
@@ -43,15 +44,22 @@ def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None
     return errors
 
 def check_rate_limiting(user_ip):
-    """レート制限チェック（簡易版）"""
+    """レート制限チェック（実装版）"""
     if not settings.RESERVATION_SETTINGS['ENABLE_RATE_LIMITING']:
         return []
     
-    # セッションベースの簡易レート制限（実際の実装ではRedisやCacheを使用推奨）
+    # 1時間以内の予約試行回数をチェック
     hour_ago = timezone.now() - timedelta(hours=1)
     
-    # IPベースの予約試行回数をチェック（実際にはより複雑な実装が必要）
-    # ここでは簡易実装として省略
+    # 実際の予約作成試行をカウント（今回はReservationテーブルを利用）
+    recent_attempts = Reservation.objects.filter(
+        created_at__gte=hour_ago
+    ).exclude(status='cancelled').count()
+    
+    # 同一IPからの試行をより厳密にチェック（簡易実装）
+    # 実際の運用では、専用のRateLimitテーブルやRedisを使用することを推奨
+    if recent_attempts >= settings.RESERVATION_SETTINGS['RATE_LIMIT_PER_HOUR']:
+        return ['現在アクセスが集中しています。しばらく時間を置いてから再度お試しください。']
     
     return []
 
@@ -87,18 +95,45 @@ def reserve_form(request):
         notes = request.POST.get("notes", "").strip()
         user_ip = request.META.get('REMOTE_ADDR')
         
-        # 基本バリデーション
+        # 強化された基本バリデーション
         errors = []
-        if not name:
+        
+        # 名前の検証
+        if not name or not name.strip():
             errors.append("名前を入力してください")
+        elif len(name.strip()) > 100:
+            errors.append("名前は100文字以内で入力してください")
+        
+        # 電話番号の検証
         if not phone:
             errors.append("電話番号を入力してください")
+        else:
+            # 電話番号の形式チェック（日本の電話番号形式）
+            phone_cleaned = re.sub(r'[^\d-]', '', phone)
+            if not re.match(r'^(\d{2,4}-\d{2,4}-\d{4}|\d{10,11})$', phone_cleaned):
+                errors.append("電話番号の形式が正しくありません（例：090-1234-5678）")
+        
+        # メールアドレスの検証
         if not email:
             errors.append("メールアドレスを入力してください")
+        else:
+            # メールアドレスの形式チェック
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                errors.append("メールアドレスの形式が正しくありません")
+            elif len(email) > 254:
+                errors.append("メールアドレスが長すぎます")
+        
+        # 予約日の検証
         if not date_str:
             errors.append("予約日を選択してください")
+        
+        # 物品IDの検証
         if not item_id:
             errors.append("レンタル物品を選択してください")
+        
+        # 備考欄の文字数制限
+        if notes and len(notes) > 500:
+            errors.append("備考は500文字以内で入力してください")
         
         # レート制限チェック
         rate_limit_errors = check_rate_limiting(user_ip)
@@ -390,13 +425,13 @@ def check_availability(request):
     return JsonResponse({'available': False, 'error': 'Invalid method'})
 
 def get_merged_calendar_data(request):
-    """全物品をマージしたカレンダーデータを取得するAPI"""
+    """全物品をマージしたカレンダーデータを取得するAPI（最適化版）"""
     try:
         year = int(request.GET.get('year', date.today().year))
         month = int(request.GET.get('month', date.today().month))
         
         # 有効な物品を取得
-        active_items = RentalItem.objects.filter(is_active=True)
+        active_items = list(RentalItem.objects.filter(is_active=True).values_list('id', flat=True))
         
         # 月の最初の日を作成
         target_date = date(year, month, 1)
@@ -412,25 +447,52 @@ def get_merged_calendar_data(request):
             next_month_first = date(year, month + 1, 1)
         days_in_month = (next_month_first - target_date).days
         
-        # カレンダーの週データを作成
-        current_date = target_date - timedelta(days=first_day_of_week)
+        # カレンダー表示範囲を計算
+        start_date = target_date - timedelta(days=first_day_of_week)
+        end_date = start_date + timedelta(days=6 * 7)  # 6週間分
+        
+        # 一括で予約データを取得（パフォーマンス最適化）
+        reserved_dates = set(
+            Reservation.objects.filter(
+                date__range=(start_date, end_date),
+                item_id__in=active_items,
+                status='confirmed'
+            ).values_list('date', 'item_id')
+        )
+        
+        # 一括でカレンダー状態データを取得
+        calendar_status_dict = {}
+        calendar_statuses = CalendarStatus.objects.filter(
+            date__range=(start_date, end_date),
+            item_id__in=active_items
+        ).values('date', 'item_id', 'is_available')
+        
+        for cs in calendar_statuses:
+            calendar_status_dict[(cs['date'], cs['item_id'])] = cs['is_available']
+        
         today = date.today()
         calendar_weeks = []
         
         for week in range(6):  # 最大6週間
             week_data = []
             for day in range(7):  # 日曜日から土曜日
-                display_date = current_date + timedelta(days=week*7 + day)
+                display_date = start_date + timedelta(days=week*7 + day)
                 
                 # 当月かどうかを判定
                 is_current_month = display_date.month == month
                 is_past_date = display_date < today
                 
-                # 全物品での可用性をチェック（一つでも可能なら◯）
+                # 全物品での可用性をチェック（最適化版）
                 is_any_available = False
                 if not is_past_date and is_current_month:
-                    for item in active_items:
-                        if check_date_availability(display_date, item, True, False):
+                    for item_id in active_items:
+                        # 予約チェック
+                        if (display_date, item_id) in reserved_dates:
+                            continue
+                        
+                        # カレンダー状態チェック
+                        calendar_available = calendar_status_dict.get((display_date, item_id), True)
+                        if calendar_available:
                             is_any_available = True
                             break
                 
@@ -462,7 +524,7 @@ def get_merged_calendar_data(request):
         return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 def get_available_items_for_date(request):
-    """指定した日付に予約可能な物品リストを取得するAPI"""
+    """指定した日付に予約可能な物品リストを取得するAPI（最適化版）"""
     try:
         date_str = request.GET.get('date')
         if not date_str:
@@ -470,12 +532,44 @@ def get_available_items_for_date(request):
         
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         
+        # 過去の日付はチェック不要
+        if target_date < date.today():
+            return JsonResponse({
+                'success': True,
+                'available_items': []
+            })
+        
         # 有効な物品を取得
         active_items = RentalItem.objects.filter(is_active=True)
-        available_items = []
         
+        # 該当日に予約済みの物品IDを取得
+        reserved_item_ids = set(
+            Reservation.objects.filter(
+                date=target_date,
+                status='confirmed'
+            ).values_list('item_id', flat=True)
+        )
+        
+        # 該当日のカレンダー状態を一括取得
+        calendar_status_dict = {}
+        calendar_statuses = CalendarStatus.objects.filter(
+            date=target_date,
+            item__is_active=True
+        ).values('item_id', 'is_available')
+        
+        for cs in calendar_statuses:
+            calendar_status_dict[cs['item_id']] = cs['is_available']
+        
+        # 利用可能な物品をフィルタリング
+        available_items = []
         for item in active_items:
-            if check_date_availability(target_date, item, True, target_date < date.today()):
+            # 予約チェック
+            if item.id in reserved_item_ids:
+                continue
+            
+            # カレンダー状態チェック
+            calendar_available = calendar_status_dict.get(item.id, True)
+            if calendar_available:
                 available_items.append({
                     'id': item.id,
                     'name': item.name

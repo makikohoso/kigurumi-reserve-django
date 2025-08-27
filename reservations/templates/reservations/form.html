@@ -145,11 +145,16 @@
         <!-- 予約フォーム部分 -->
         <div id="reservation-form-section" class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] py-6 px-4 md:py-6 md:px-6">
             <h2 class="text-xl sm:text-2xl font-bold text-center text-cyan-500 mb-4 sm:mb-5 md:mb-6">予約フォーム</h2>
-            {% if error %}
+            {% if errors %}
                 <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    {{ error }}
+                    <ul class="list-disc list-inside">
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             {% endif %}
+            
             <form method="post" class="space-y-5 sm:space-y-6">
                 {% csrf_token %}
                 <div>
@@ -157,19 +162,34 @@
                     <select id="item" name="item" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
                         <option value="">選択してください</option>
                         {% for item in items %}
-                            <option value="{{ item.id }}">{{ item.name }}</option>
+                            <option value="{{ item.id }}" {% if form_data.item == item.id|stringformat:"s" %}selected{% endif %}>{{ item.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 
                 <div>
                     <label for="date" class="block font-semibold mb-2 text-sm md:text-base">予約日 *</label>
-                    <input type="date" id="date" name="date" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
+                    <input type="date" id="date" name="date" value="{{ form_data.date|default:'' }}" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
                 </div>
                 
                 <div>
                     <label for="name" class="block font-semibold mb-2 text-sm md:text-base">名前 *</label>
-                    <input type="text" id="name" name="name" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 h-12 md:h-auto" placeholder="予約者名">
+                    <input type="text" id="name" name="name" value="{{ form_data.name|default:'' }}" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 h-12 md:h-auto" placeholder="予約者名">
+                </div>
+                
+                <div>
+                    <label for="phone" class="block font-semibold mb-2 text-sm md:text-base">電話番号 *</label>
+                    <input type="tel" id="phone" name="phone" value="{{ form_data.phone|default:'' }}" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 h-12 md:h-auto" placeholder="090-1234-5678">
+                </div>
+                
+                <div>
+                    <label for="email" class="block font-semibold mb-2 text-sm md:text-base">メールアドレス *</label>
+                    <input type="email" id="email" name="email" value="{{ form_data.email|default:'' }}" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 h-12 md:h-auto" placeholder="example@email.com">
+                </div>
+                
+                <div>
+                    <label for="notes" class="block font-semibold mb-2 text-sm md:text-base">備考</label>
+                    <textarea id="notes" name="notes" class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3" placeholder="特記事項があれば記入してください">{{ form_data.notes|default:'' }}</textarea>
                 </div>
                 
                 <button type="submit" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">予約する</button>

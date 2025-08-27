@@ -5,13 +5,51 @@ from .models import Reservation, RentalItem, CalendarStatus
 from datetime import datetime, date, timedelta
 import json
 
+def check_date_availability(target_date, item, is_current_month=True, is_past_date=False):
+    """日付の予約可能性を効率的にチェック"""
+    # 過去の日付や当月以外は利用不可
+    if is_past_date or not is_current_month:
+        return False
+    
+    # 予約の存在チェック（優先）
+    if Reservation.objects.filter(
+        date=target_date, 
+        item=item, 
+        status='confirmed'
+    ).exists():
+        return False
+    
+    # CalendarStatusチェック
+    try:
+        calendar_status = CalendarStatus.objects.get(date=target_date, item=item)
+        return calendar_status.is_available
+    except CalendarStatus.DoesNotExist:
+        # CalendarStatusが存在しない場合はデフォルトで利用可能
+        return True
+
 def reserve_form(request):
     if request.method == "POST":
         name = request.POST.get("name")
+        phone = request.POST.get("phone", "").strip()
+        email = request.POST.get("email", "").strip()
         date_str = request.POST.get("date")
         item_id = request.POST.get("item")
+        notes = request.POST.get("notes", "").strip()
         
-        if name and date_str and item_id:
+        # バリデーション
+        errors = []
+        if not name:
+            errors.append("名前を入力してください")
+        if not phone:
+            errors.append("電話番号を入力してください")
+        if not email:
+            errors.append("メールアドレスを入力してください")
+        if not date_str:
+            errors.append("予約日を選択してください")
+        if not item_id:
+            errors.append("レンタル物品を選択してください")
+            
+        if not errors:
             try:
                 # 日付文字列を日付オブジェクトに変換
                 date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -19,7 +57,14 @@ def reserve_form(request):
                 item = get_object_or_404(RentalItem, id=item_id, is_active=True)
                 
                 # 予約を作成
-                Reservation.objects.create(name=name, date=date_obj, item=item)
+                reservation = Reservation.objects.create(
+                    name=name, 
+                    phone=phone,
+                    email=email,
+                    date=date_obj, 
+                    item=item,
+                    notes=notes
+                )
                 
                 # 予約された日付・物品の組み合わせを予約不可に設定
                 calendar_status, created = CalendarStatus.objects.get_or_create(
@@ -34,17 +79,25 @@ def reserve_form(request):
                     calendar_status.save()
                 
                 return render(request, "reservations/thanks.html", {
-                    "name": name, 
-                    "date": date_obj,
-                    "item": item
+                    "reservation": reservation
                 })
             except ValueError:
-                # 無効な日付形式の場合
-                items = RentalItem.objects.filter(is_active=True)
-                return render(request, "reservations/form.html", {
-                    "items": items,
-                    "error": "無効な日付形式です"
-                })
+                errors.append("無効な日付形式です")
+                
+        if errors:
+            items = RentalItem.objects.filter(is_active=True)
+            return render(request, "reservations/form.html", {
+                "items": items,
+                "errors": errors,
+                "form_data": {
+                    "name": name,
+                    "phone": phone,
+                    "email": email,
+                    "date": date_str,
+                    "item": item_id,
+                    "notes": notes
+                }
+            })
     
     # 利用可能なレンタル物品を取得
     items = RentalItem.objects.filter(is_active=True)
@@ -175,23 +228,8 @@ def get_calendar_data_for_item(request, item_id):
                 is_current_month = display_date.month == month
                 is_past_date = display_date < today
                 
-                # 予約が既に存在するかチェック（優先判定）
-                reservation_exists = Reservation.objects.filter(
-                    date=display_date, 
-                    item=item
-                ).exists()
-                
-                # 予約が存在する場合は必ず利用不可
-                if reservation_exists:
-                    is_available = False
-                else:
-                    # 予約がない場合、CalendarStatusをチェック
-                    try:
-                        status = CalendarStatus.objects.get(date=display_date, item=item)
-                        is_available = status.is_available and is_current_month and not is_past_date
-                    except CalendarStatus.DoesNotExist:
-                        # CalendarStatusがない場合は、当月で過去日でなければ利用可能
-                        is_available = is_current_month and not is_past_date
+                # 予約状況を効率的にチェック
+                is_available = check_date_availability(display_date, item, is_current_month, is_past_date)
                 
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
@@ -236,24 +274,23 @@ def check_availability(request):
             target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             item = get_object_or_404(RentalItem, id=item_id, is_active=True)
             
-            # 予約が既に存在するかチェック（優先判定）
-            reservation_exists = Reservation.objects.filter(
-                date=target_date, 
-                item=item
-            ).exists()
+            # 統合された可用性チェック
+            is_past_date = target_date < date.today()
+            available = check_date_availability(target_date, item, True, is_past_date)
             
-            if reservation_exists:
-                return JsonResponse({'available': False, 'reason': 'already_reserved'})
+            reason = None
+            if not available:
+                if Reservation.objects.filter(date=target_date, item=item, status='confirmed').exists():
+                    reason = 'already_reserved'
+                elif is_past_date:
+                    reason = 'past_date'
+                else:
+                    reason = 'unavailable'
             
-            # CalendarStatusをチェック
-            try:
-                status = CalendarStatus.objects.get(date=target_date, item=item)
-                available = status.is_available
-            except CalendarStatus.DoesNotExist:
-                # CalendarStatusがない場合は、過去の日付でなければ利用可能
-                available = target_date >= date.today()
-            
-            return JsonResponse({'available': available})
+            return JsonResponse({
+                'available': available,
+                'reason': reason
+            })
             
         except (ValueError, json.JSONDecodeError, RentalItem.DoesNotExist):
             return JsonResponse({'available': False, 'error': 'Invalid request'})
@@ -271,28 +308,29 @@ def get_disabled_dates(request, item_id):
         
         disabled_dates = []
         
-        # 予約済みの日付を取得
-        reservations = Reservation.objects.filter(
+        # 確定済み予約の日付を取得
+        confirmed_reservations = Reservation.objects.filter(
             item=item,
+            status='confirmed',
             date__gte=today,
             date__lte=end_date
         ).values_list('date', flat=True)
         
-        for reservation_date in reservations:
+        for reservation_date in confirmed_reservations:
             disabled_dates.append(reservation_date.strftime('%Y-%m-%d'))
         
-        # CalendarStatusで利用不可に設定された日付も取得
+        # CalendarStatusで利用不可に設定された日付も取得（予約済み以外）
         calendar_statuses = CalendarStatus.objects.filter(
             item=item,
             is_available=False,
             date__gte=today,
             date__lte=end_date
+        ).exclude(
+            date__in=confirmed_reservations
         ).values_list('date', flat=True)
         
         for status_date in calendar_statuses:
-            date_str = status_date.strftime('%Y-%m-%d')
-            if date_str not in disabled_dates:
-                disabled_dates.append(date_str)
+            disabled_dates.append(status_date.strftime('%Y-%m-%d'))
         
         return JsonResponse({
             'success': True,
@@ -301,3 +339,70 @@ def get_disabled_dates(request, item_id):
         
     except RentalItem.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Item not found'})
+
+def reservation_lookup(request):
+    """予約確認・検索機能"""
+    reservation = None
+    error_message = None
+    
+    if request.method == "POST":
+        confirmation_number = request.POST.get('confirmation_number', '').strip().upper()
+        
+        if confirmation_number:
+            try:
+                reservation = Reservation.objects.select_related('item').get(
+                    confirmation_number=confirmation_number
+                )
+            except Reservation.DoesNotExist:
+                error_message = "指定された予約確認番号の予約は見つかりませんでした"
+        else:
+            error_message = "予約確認番号を入力してください"
+    
+    context = {
+        'reservation': reservation,
+        'error_message': error_message
+    }
+    
+    return render(request, "reservations/lookup.html", context)
+
+def cancel_reservation(request, confirmation_number):
+    """予約キャンセル機能"""
+    try:
+        reservation = Reservation.objects.get(confirmation_number=confirmation_number)
+        
+        if request.method == "POST":
+            if reservation.can_cancel():
+                if reservation.cancel():
+                    # CalendarStatusも更新（予約不可から利用可能に戻す）
+                    try:
+                        calendar_status = CalendarStatus.objects.get(
+                            date=reservation.date,
+                            item=reservation.item
+                        )
+                        calendar_status.is_available = True
+                        calendar_status.save()
+                    except CalendarStatus.DoesNotExist:
+                        pass
+                    
+                    return render(request, "reservations/cancel_success.html", {
+                        'reservation': reservation
+                    })
+                else:
+                    error_message = "予約のキャンセルに失敗しました"
+            else:
+                error_message = "この予約はキャンセルできません（予約日前日まで可能）"
+        else:
+            error_message = None
+            
+        context = {
+            'reservation': reservation,
+            'error_message': error_message,
+            'can_cancel': reservation.can_cancel()
+        }
+        
+        return render(request, "reservations/cancel_confirm.html", context)
+        
+    except Reservation.DoesNotExist:
+        return render(request, "reservations/cancel_confirm.html", {
+            'error_message': "指定された予約は見つかりませんでした"
+        })

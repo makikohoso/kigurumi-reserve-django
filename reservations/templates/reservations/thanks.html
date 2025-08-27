@@ -55,17 +55,27 @@
                 <h3 class="text-lg font-semibold text-zinc-700 mb-4 text-center">予約詳細</h3>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
+                        <span class="font-medium text-zinc-600">予約確認番号:</span>
+                        <span class="text-zinc-800 font-bold">{{ reservation.confirmation_number }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
                         <span class="font-medium text-zinc-600">お名前:</span>
-                        <span class="text-zinc-800">{{ name }} 様</span>
+                        <span class="text-zinc-800">{{ reservation.name }} 様</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="font-medium text-zinc-600">予約日:</span>
-                        <span class="text-zinc-800">{{ date|date:"Y年m月d日" }}</span>
+                        <span class="text-zinc-800">{{ reservation.date|date:"Y年m月d日" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="font-medium text-zinc-600">レンタル物品:</span>
-                        <span class="text-zinc-800">{{ item.name }}</span>
+                        <span class="text-zinc-800">{{ reservation.item.name }}</span>
                     </div>
+                    {% if reservation.notes %}
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium text-zinc-600">備考:</span>
+                        <span class="text-zinc-800">{{ reservation.notes }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             

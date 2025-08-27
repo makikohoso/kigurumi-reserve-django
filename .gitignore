@@ -141,3 +141,6 @@ dmypy.json
 # Project specific
 media/
 staticfiles/
+
+# Claude Code settings
+.claude/settings.local.json

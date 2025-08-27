@@ -99,7 +99,7 @@
             <div class="flex flex-col justify-between md:flex-row items-center sm:items-left max-w-full overflow-hidden mb-6 pb-6 border-b">
                 <label for="calendar-item" class="font-semibold mb-3 md:mb-0 md:mr-2 text-base sm:text-base">レンタル物品と日付を選択してください</label>
                 <select id="calendar-item" class="w-full md:w-[425px] border rounded p-2 sm:p-3 text-sm sm:text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-inset bg-white h-12 md:h-auto">
-                    <option value="">物品を選択してください</option>
+                    <option value="">すべて表示</option>
                     {% for item in items %}
                         <option value="{{ item.id }}">{{ item.name }}</option>
                     {% endfor %}
@@ -107,7 +107,7 @@
             </div>
             
             <!-- カレンダー表示エリア -->
-            <div id="calendar-container" class="hidden">
+            <div id="calendar-container">
                 <!-- 月表示とナビゲーションボタン -->
                 <div class="flex flex-col justify-between items-center mb-3">
                     <div class="flex w-full justify-between items-center mb-2 sm:mb-3">
@@ -136,10 +136,6 @@
                 <p class="text-sm text-gray-600 text-center mt-4">※ ◯をクリックすると下のフォームに自動入力されます</p>
             </div>
             
-            <!-- 選択なしの場合のメッセージ -->
-            <div id="no-selection-message" class="text-center py-8 text-gray-500">
-                上記プルダウンから物品を選択するとカレンダーが表示されます
-            </div>
         </div>
         
         <!-- 予約フォーム部分 -->
@@ -244,25 +240,20 @@
             return cookieValue;
         }
         
+        
         // カレンダー物品選択の変更イベント
         document.getElementById('calendar-item').addEventListener('change', function() {
             const itemId = this.value;
-            const calendarContainer = document.getElementById('calendar-container');
-            const noSelectionMessage = document.getElementById('no-selection-message');
-            const calendarContent = document.getElementById('calendar-content');
             
             if (itemId === '') {
-                // 選択なしの場合
-                calendarContainer.classList.add('hidden');
-                noSelectionMessage.classList.remove('hidden');
+                // 「すべて表示」の場合はマージされたカレンダーを表示
+                loadMergedCalendar();
             } else {
-                // 物品が選択された場合
-                noSelectionMessage.classList.add('hidden');
-                calendarContainer.classList.remove('hidden');
+                // 特定の物品が選択された場合は個別カレンダーを表示
                 loadCalendar(itemId);
             }
         });
-        
+
         // フォームの物品選択変更イベント（flatpickr更新用）
         document.getElementById('item').addEventListener('change', function() {
             const itemId = this.value;
@@ -310,7 +301,36 @@
         let currentMonth = new Date().getMonth() + 1;
         let currentItemId = null;
         
-        // カレンダーデータを読み込む関数
+        // マージされたカレンダーデータを読み込む関数
+        function loadMergedCalendar(year = null, month = null) {
+            const calendarContent = document.getElementById('calendar-content');
+            calendarContent.innerHTML = '<div class="text-center py-4">読み込み中...</div>';
+            
+            currentItemId = null; // マージ表示時はnull
+            if (year !== null) currentYear = year;
+            if (month !== null) currentMonth = month;
+            
+            fetch(`/merged-calendar-data/?year=${currentYear}&month=${currentMonth}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayCalendar(data.calendar_data);
+                } else {
+                    calendarContent.innerHTML = '<div class="text-center py-4 text-red-500">カレンダーの読み込みに失敗しました</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                calendarContent.innerHTML = '<div class="text-center py-4 text-red-500">エラーが発生しました</div>';
+            });
+        }
+        
+        // 個別物品のカレンダーデータを読み込む関数
         function loadCalendar(itemId, year = null, month = null) {
             const calendarContent = document.getElementById('calendar-content');
             calendarContent.innerHTML = '<div class="text-center py-4">読み込み中...</div>';
@@ -406,25 +426,33 @@
         // 前月・翌月ナビゲーションの設定
         function setupMonthNavigation() {
             document.getElementById('prev-month').onclick = function() {
-                if (currentItemId) {
-                    let prevMonth = currentMonth - 1;
-                    let prevYear = currentYear;
-                    if (prevMonth < 1) {
-                        prevMonth = 12;
-                        prevYear--;
-                    }
+                let prevMonth = currentMonth - 1;
+                let prevYear = currentYear;
+                if (prevMonth < 1) {
+                    prevMonth = 12;
+                    prevYear--;
+                }
+                
+                // 現在の表示モードに応じてカレンダーを読み込む
+                if (currentItemId === null) {
+                    loadMergedCalendar(prevYear, prevMonth);
+                } else {
                     loadCalendar(currentItemId, prevYear, prevMonth);
                 }
             };
             
             document.getElementById('next-month').onclick = function() {
-                if (currentItemId) {
-                    let nextMonth = currentMonth + 1;
-                    let nextYear = currentYear;
-                    if (nextMonth > 12) {
-                        nextMonth = 1;
-                        nextYear++;
-                    }
+                let nextMonth = currentMonth + 1;
+                let nextYear = currentYear;
+                if (nextMonth > 12) {
+                    nextMonth = 1;
+                    nextYear++;
+                }
+                
+                // 現在の表示モードに応じてカレンダーを読み込む
+                if (currentItemId === null) {
+                    loadMergedCalendar(nextYear, nextMonth);
+                } else {
                     loadCalendar(currentItemId, nextYear, nextMonth);
                 }
             };
@@ -432,27 +460,72 @@
         
         // カレンダーの日付選択関数
         function selectDate(dateStr) {
-            const itemSelect = document.getElementById('calendar-item');
-            const itemId = itemSelect.value;
-            const itemName = itemSelect.options[itemSelect.selectedIndex].text;
-            
-            // フォームの物品選択を更新
-            document.getElementById('item').value = itemId;
-            
-            // 物品選択が変更されたので、flatpickrの無効日付を更新してから日付を設定
-            updateDatePickerDisabledDates(itemId).then(() => {
-                // flatpickrで日付を設定
-                if (datePicker) {
-                    datePicker.setDate(dateStr, false); // triggerChangeをfalseにして無限ループを防ぐ
-                } else {
-                    document.getElementById('date').value = dateStr;
-                }
-            });
-            
-            // 選択された日付をハイライト表示
-            highlightSelectedDate(dateStr);
-            
-            // 予約フォームにスムーズスクロール
+            if (currentItemId === null) {
+                // マージ表示時：選択された日付に予約可能な物品を取得
+                fetch(`/available-items/?date=${dateStr}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 物品選択肢を更新
+                        updateItemOptions(data.available_items);
+                        
+                        // 日付フィールドを設定
+                        if (datePicker) {
+                            datePicker.setDate(dateStr, false);
+                        } else {
+                            document.getElementById('date').value = dateStr;
+                        }
+                        
+                        // 選択された日付をハイライト表示
+                        highlightSelectedDate(dateStr);
+                        
+                        // 予約フォームにスムーズスクロール
+                        scrollToForm();
+                        
+                        console.log(`選択: ${dateStr}, 利用可能物品数: ${data.available_items.length}`);
+                    } else {
+                        alert('選択された日付の物品情報の取得に失敗しました。');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('エラーが発生しました。');
+                });
+            } else {
+                // 個別物品表示時：選択された物品をフォームに設定
+                const itemSelect = document.getElementById('calendar-item');
+                const itemName = itemSelect.options[itemSelect.selectedIndex].text;
+                
+                // フォームの物品選択を更新
+                document.getElementById('item').value = currentItemId;
+                
+                // 物品選択が変更されたので、flatpickrの無効日付を更新してから日付を設定
+                updateDatePickerDisabledDates(currentItemId).then(() => {
+                    // flatpickrで日付を設定
+                    if (datePicker) {
+                        datePicker.setDate(dateStr, false);
+                    } else {
+                        document.getElementById('date').value = dateStr;
+                    }
+                });
+                
+                // 選択された日付をハイライト表示
+                highlightSelectedDate(dateStr);
+                
+                // 予約フォームにスムーズスクロール
+                scrollToForm();
+                
+                console.log(`選択: ${dateStr}, 物品: ${itemName}`);
+            }
+        }
+        
+        // フォームへのスムーズスクロール
+        function scrollToForm() {
             const formSection = document.getElementById('reservation-form-section');
             if (formSection) {
                 formSection.scrollIntoView({ 
@@ -460,8 +533,19 @@
                     block: 'start'
                 });
             }
+        }
+        
+        // 物品選択肢を更新する関数
+        function updateItemOptions(availableItems) {
+            const itemSelect = document.getElementById('item');
+            itemSelect.innerHTML = '<option value="">選択してください</option>';
             
-            console.log(`選択: ${dateStr}, 物品: ${itemName}`);
+            availableItems.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                itemSelect.appendChild(option);
+            });
         }
         
         // フォーム送信前のバリデーション
@@ -516,6 +600,11 @@
                 }
             });
         }
+        
+        // ページ読み込み時に初期カレンダーを表示
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMergedCalendar();
+        });
     </script>
 </body>
 </html>

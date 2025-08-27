@@ -389,6 +389,106 @@ def check_availability(request):
     
     return JsonResponse({'available': False, 'error': 'Invalid method'})
 
+def get_merged_calendar_data(request):
+    """全物品をマージしたカレンダーデータを取得するAPI"""
+    try:
+        year = int(request.GET.get('year', date.today().year))
+        month = int(request.GET.get('month', date.today().month))
+        
+        # 有効な物品を取得
+        active_items = RentalItem.objects.filter(is_active=True)
+        
+        # 月の最初の日を作成
+        target_date = date(year, month, 1)
+        first_day_weekday = target_date.weekday()  # 0=月曜日, 6=日曜日
+        
+        # 日曜日を0にするため調整
+        first_day_of_week = (first_day_weekday + 1) % 7
+        
+        # その月の日数を取得
+        if month == 12:
+            next_month_first = date(year + 1, 1, 1)
+        else:
+            next_month_first = date(year, month + 1, 1)
+        days_in_month = (next_month_first - target_date).days
+        
+        # カレンダーの週データを作成
+        current_date = target_date - timedelta(days=first_day_of_week)
+        today = date.today()
+        calendar_weeks = []
+        
+        for week in range(6):  # 最大6週間
+            week_data = []
+            for day in range(7):  # 日曜日から土曜日
+                display_date = current_date + timedelta(days=week*7 + day)
+                
+                # 当月かどうかを判定
+                is_current_month = display_date.month == month
+                is_past_date = display_date < today
+                
+                # 全物品での可用性をチェック（一つでも可能なら◯）
+                is_any_available = False
+                if not is_past_date and is_current_month:
+                    for item in active_items:
+                        if check_date_availability(display_date, item, True, False):
+                            is_any_available = True
+                            break
+                
+                week_data.append({
+                    'date': display_date.strftime('%Y-%m-%d'),
+                    'day': display_date.day,
+                    'is_available': is_any_available,
+                    'is_current_month': is_current_month,
+                    'is_past_date': is_past_date,
+                    'status_text': '◯' if is_any_available else ('✗' if is_current_month and not is_past_date else '-')
+                })
+            calendar_weeks.append(week_data)
+            
+            # 当月の日付が全て表示されたら終了
+            if (week + 1) * 7 >= first_day_of_week + days_in_month:
+                break
+        
+        return JsonResponse({
+            'success': True,
+            'calendar_data': {
+                'year': year,
+                'month': month,
+                'month_name': f'{year}年{month}月',
+                'weeks': calendar_weeks
+            }
+        })
+        
+    except (ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid request'})
+
+def get_available_items_for_date(request):
+    """指定した日付に予約可能な物品リストを取得するAPI"""
+    try:
+        date_str = request.GET.get('date')
+        if not date_str:
+            return JsonResponse({'success': False, 'error': 'Date parameter is required'})
+        
+        target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # 有効な物品を取得
+        active_items = RentalItem.objects.filter(is_active=True)
+        available_items = []
+        
+        for item in active_items:
+            if check_date_availability(target_date, item, True, target_date < date.today()):
+                available_items.append({
+                    'id': item.id,
+                    'name': item.name
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'available_items': available_items
+        })
+        
+    except (ValueError):
+        return JsonResponse({'success': False, 'error': 'Invalid date format'})
+
 def get_disabled_dates(request, item_id):
     """指定された物品の予約不可日付を取得するAPI"""
     try:

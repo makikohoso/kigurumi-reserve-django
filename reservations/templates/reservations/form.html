@@ -1,6 +1,69 @@
-<!doctype html><meta charset="utf-8">
-<h1>予約フォーム</h1>
-<form method="post">{% csrf_token %}
-  <label>名前: <input name="name" required></label>
-  <button type="submit">予約する</button>
-</form>
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>予約フォーム</title>
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; margin: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="date"], select { 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            font-size: 16px; 
+            width: 266px;
+        }
+        button { 
+            background: #007cba; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 16px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #005a87; }
+    </style>
+</head>
+<body>
+    <h1>予約フォーム</h1>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="item">レンタル物品:</label>
+            <select id="item" name="item" required>
+                <option value="">選択してください</option>
+                {% for item in items %}
+                    <option value="{{ item.id }}">{{ item.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="date">予約日:</label>
+            <input type="date" id="date" name="date" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="name">名前:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+        
+        <button type="submit">予約する</button>
+    </form>
+
+    <script>
+        // 今日から1年後までの日付範囲を設定
+        const today = new Date();
+        const oneYearLater = new Date();
+        oneYearLater.setFullYear(today.getFullYear() + 1);
+        
+        const dateInput = document.getElementById('date');
+        dateInput.min = today.toISOString().split('T')[0];
+        dateInput.max = oneYearLater.toISOString().split('T')[0];
+        dateInput.value = today.toISOString().split('T')[0];
+    </script>
+</body>
+</html>

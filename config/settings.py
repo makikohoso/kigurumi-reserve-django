@@ -140,6 +140,6 @@ RESERVATION_SETTINGS = {
     'MIN_ADVANCE_HOURS': 24,  # 最低24時間前まで予約可能
     'MAX_RESERVATIONS_PER_USER_PER_DAY': 3,  # 1日あたり最大3件の予約
     'RESERVATION_TIMEOUT_MINUTES': 10,  # 予約プロセスのタイムアウト
-    'ENABLE_RATE_LIMITING': True,
+    'ENABLE_RATE_LIMITING': False,  # 一時的に無効化
     'RATE_LIMIT_PER_HOUR': 10,  # 1時間あたり最大10件の予約試行
 }

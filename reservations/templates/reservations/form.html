@@ -127,6 +127,10 @@
                         <div class="mr-1 sm:mr-2 text-red-600 text-sm sm:text-base">✕</div>
                         <span class="text-xs sm:text-sm md:text-base">予約不可</span>
                     </div>
+                    <div class="flex items-center">
+                        <div class="mr-1 sm:mr-2 text-gray-600 text-sm sm:text-base">休</div>
+                        <span class="text-xs sm:text-sm md:text-base">休業日</span>
+                    </div>
                 </div>
                 
                 <div id="calendar-content">
@@ -474,11 +478,10 @@
                         // 物品選択肢を更新
                         updateItemOptions(data.available_items);
                         
-                        // 日付フィールドを設定
+                        // 日付フィールドを確実に設定
+                        document.getElementById('date').value = dateStr;
                         if (datePicker) {
                             datePicker.setDate(dateStr, false);
-                        } else {
-                            document.getElementById('date').value = dateStr;
                         }
                         
                         // 選択された日付をハイライト表示
@@ -504,13 +507,12 @@
                 // フォームの物品選択を更新
                 document.getElementById('item').value = currentItemId;
                 
-                // 物品選択が変更されたので、flatpickrの無効日付を更新してから日付を設定
+                // 日付フィールドを確実に設定してからflatpickrを更新
+                document.getElementById('date').value = dateStr;
                 updateDatePickerDisabledDates(currentItemId).then(() => {
                     // flatpickrで日付を設定
                     if (datePicker) {
                         datePicker.setDate(dateStr, false);
-                    } else {
-                        document.getElementById('date').value = dateStr;
                     }
                 });
                 

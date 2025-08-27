@@ -34,8 +34,12 @@ def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None
             status='confirmed'
         ).count()
         
+        # デバッグ情報（開発環境のみ）
+        if settings.DEBUG:
+            print(f"予約制限チェック: 電話番号={phone}, 今日の予約数={today_reservations}, 上限={settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']}")
+        
         if today_reservations >= settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']:
-            errors.append(f"1日あたり{settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']}件までしか予約できません")
+            errors.append(f"1日あたり{settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']}件までしか予約できません（現在{today_reservations}件）")
     
     # 3. 営業時間・営業日チェック（基本的な例）
     if date_obj.weekday() == 6:  # 日曜日
@@ -355,8 +359,17 @@ def get_calendar_data_for_item(request, item_id):
                 is_current_month = display_date.month == month
                 is_past_date = display_date < today
                 
-                # 予約状況を効率的にチェック
-                is_available = check_date_availability(display_date, item, is_current_month, is_past_date)
+                # 予約状況を効率的にチェック（休業日考慮）
+                if display_date.weekday() == 6 and is_current_month and not is_past_date:  # 日曜日
+                    is_available = False
+                else:
+                    is_available = check_date_availability(display_date, item, is_current_month, is_past_date)
+                
+                # 休業日の場合の表示調整
+                if display_date.weekday() == 6 and is_current_month and not is_past_date:
+                    status_text = '休'
+                else:
+                    status_text = '◯' if is_available else ('✗' if is_current_month and not is_past_date else '-')
                 
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
@@ -364,7 +377,7 @@ def get_calendar_data_for_item(request, item_id):
                     'is_available': is_available,
                     'is_current_month': is_current_month,
                     'is_past_date': is_past_date,
-                    'status_text': '◯' if is_available else ('✗' if is_current_month and not is_past_date else '-')
+                    'status_text': status_text
                 })
             calendar_weeks.append(week_data)
             
@@ -485,16 +498,26 @@ def get_merged_calendar_data(request):
                 # 全物品での可用性をチェック（最適化版）
                 is_any_available = False
                 if not is_past_date and is_current_month:
-                    for item_id in active_items:
-                        # 予約チェック
-                        if (display_date, item_id) in reserved_dates:
-                            continue
-                        
-                        # カレンダー状態チェック
-                        calendar_available = calendar_status_dict.get((display_date, item_id), True)
-                        if calendar_available:
-                            is_any_available = True
-                            break
+                    # 日曜日（休業日）チェック
+                    if display_date.weekday() == 6:  # 日曜日
+                        is_any_available = False
+                    else:
+                        for item_id in active_items:
+                            # 予約チェック
+                            if (display_date, item_id) in reserved_dates:
+                                continue
+                            
+                            # カレンダー状態チェック
+                            calendar_available = calendar_status_dict.get((display_date, item_id), True)
+                            if calendar_available:
+                                is_any_available = True
+                                break
+                
+                # 休業日の場合の表示調整
+                if display_date.weekday() == 6 and is_current_month and not is_past_date:
+                    status_text = '休'
+                else:
+                    status_text = '◯' if is_any_available else ('✗' if is_current_month and not is_past_date else '-')
                 
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
@@ -502,7 +525,7 @@ def get_merged_calendar_data(request):
                     'is_available': is_any_available,
                     'is_current_month': is_current_month,
                     'is_past_date': is_past_date,
-                    'status_text': '◯' if is_any_available else ('✗' if is_current_month and not is_past_date else '-')
+                    'status_text': status_text
                 })
             calendar_weeks.append(week_data)
             

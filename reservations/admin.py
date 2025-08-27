@@ -16,10 +16,24 @@ class RentalItemAdmin(admin.ModelAdmin):
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'item', 'date', 'name', 'created_at')  # テーブルに表示するフィールド
-    list_filter = ('date', 'item', 'created_at')  # 右側のフィルター
-    search_fields = ('name',)  # 検索可能フィールド
-    ordering = ('-created_at', 'name')  # 並び順（新しい予約日時順、名前順）
+    list_display = ('confirmation_number', 'name', 'item', 'date', 'status', 'created_at')  # 新しいフィールドを追加
+    list_filter = ('date', 'item', 'status', 'created_at')  # ステータスフィルターを追加
+    search_fields = ('name', 'confirmation_number', 'phone', 'email')  # 新しい検索フィールドを追加
+    ordering = ('-created_at',)  # 作成日時の降順
+    readonly_fields = ('confirmation_number', 'created_at', 'updated_at')  # 読み取り専用フィールド
+    
+    fieldsets = (
+        ('基本情報', {
+            'fields': ('confirmation_number', 'name', 'phone', 'email')
+        }),
+        ('予約詳細', {
+            'fields': ('item', 'date', 'status', 'notes')
+        }),
+        ('システム情報', {
+            'fields': ('created_at', 'updated_at', 'cancelled_at'),
+            'classes': ('collapse',)
+        })
+    )
 
 @admin.register(CalendarStatus)
 class CalendarStatusAdmin(admin.ModelAdmin):

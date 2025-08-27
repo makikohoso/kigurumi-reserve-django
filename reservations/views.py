@@ -1,9 +1,59 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction, IntegrityError
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from .models import Reservation, RentalItem, CalendarStatus
 from datetime import datetime, date, timedelta
 import json
+import time
+from django.conf import settings
+
+def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None):
+    """予約ビジネスルールの検証"""
+    errors = []
+    now = timezone.now()
+    
+    # 1. 予約期間制限チェック
+    max_advance = timedelta(days=settings.RESERVATION_SETTINGS['MAX_ADVANCE_DAYS'])
+    min_advance = timedelta(hours=settings.RESERVATION_SETTINGS['MIN_ADVANCE_HOURS'])
+    
+    if date_obj > (now.date() + max_advance):
+        errors.append(f"予約は{settings.RESERVATION_SETTINGS['MAX_ADVANCE_DAYS']}日前までしかできません")
+    
+    if date_obj <= (now + min_advance).date():
+        errors.append(f"予約は{settings.RESERVATION_SETTINGS['MIN_ADVANCE_HOURS']}時間前までに行ってください")
+    
+    # 2. 同日同一ユーザーの予約制限（電話番号ベース）
+    if phone:
+        today_reservations = Reservation.objects.filter(
+            phone=phone,
+            created_at__date=now.date(),
+            status='confirmed'
+        ).count()
+        
+        if today_reservations >= settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']:
+            errors.append(f"1日あたり{settings.RESERVATION_SETTINGS['MAX_RESERVATIONS_PER_USER_PER_DAY']}件までしか予約できません")
+    
+    # 3. 営業時間・営業日チェック（基本的な例）
+    if date_obj.weekday() == 6:  # 日曜日
+        errors.append("日曜日は休業日のため予約できません")
+    
+    return errors
+
+def check_rate_limiting(user_ip):
+    """レート制限チェック（簡易版）"""
+    if not settings.RESERVATION_SETTINGS['ENABLE_RATE_LIMITING']:
+        return []
+    
+    # セッションベースの簡易レート制限（実際の実装ではRedisやCacheを使用推奨）
+    hour_ago = timezone.now() - timedelta(hours=1)
+    
+    # IPベースの予約試行回数をチェック（実際にはより複雑な実装が必要）
+    # ここでは簡易実装として省略
+    
+    return []
 
 def check_date_availability(target_date, item, is_current_month=True, is_past_date=False):
     """日付の予約可能性を効率的にチェック"""
@@ -35,8 +85,9 @@ def reserve_form(request):
         date_str = request.POST.get("date")
         item_id = request.POST.get("item")
         notes = request.POST.get("notes", "").strip()
+        user_ip = request.META.get('REMOTE_ADDR')
         
-        # バリデーション
+        # 基本バリデーション
         errors = []
         if not name:
             errors.append("名前を入力してください")
@@ -48,6 +99,10 @@ def reserve_form(request):
             errors.append("予約日を選択してください")
         if not item_id:
             errors.append("レンタル物品を選択してください")
+        
+        # レート制限チェック
+        rate_limit_errors = check_rate_limiting(user_ip)
+        errors.extend(rate_limit_errors)
             
         if not errors:
             try:
@@ -56,31 +111,66 @@ def reserve_form(request):
                 # レンタル物品を取得
                 item = get_object_or_404(RentalItem, id=item_id, is_active=True)
                 
-                # 予約を作成
-                reservation = Reservation.objects.create(
-                    name=name, 
-                    phone=phone,
-                    email=email,
-                    date=date_obj, 
-                    item=item,
-                    notes=notes
+                # ビジネスルール検証
+                business_rule_errors = validate_reservation_business_rules(
+                    date_obj, item, user_ip, phone
                 )
+                errors.extend(business_rule_errors)
                 
-                # 予約された日付・物品の組み合わせを予約不可に設定
-                calendar_status, created = CalendarStatus.objects.get_or_create(
-                    date=date_obj,
-                    item=item,
-                    defaults={'is_available': False}
-                )
-                
-                # 既にレコードが存在する場合は予約不可に更新
-                if not created:
-                    calendar_status.is_available = False
-                    calendar_status.save()
-                
-                return render(request, "reservations/thanks.html", {
-                    "reservation": reservation
-                })
+                if not errors:
+                    # トランザクション処理で同時予約競合を回避
+                    try:
+                        with transaction.atomic():
+                            # 予約可能性の最終チェック（ロック付き）
+                            existing_reservation = Reservation.objects.select_for_update().filter(
+                                date=date_obj,
+                                item=item,
+                                status='confirmed'
+                            ).first()
+                            
+                            if existing_reservation:
+                                errors.append("申し訳ございませんが、この日時は既に予約済みです")
+                                raise ValidationError("予約競合")
+                            
+                            # CalendarStatusもロックして確認
+                            calendar_status = CalendarStatus.objects.select_for_update().filter(
+                                date=date_obj,
+                                item=item
+                            ).first()
+                            
+                            if calendar_status and not calendar_status.is_available:
+                                errors.append("この日時は予約できません")
+                                raise ValidationError("利用不可日")
+                            
+                            # 予約を作成
+                            reservation = Reservation.objects.create(
+                                name=name, 
+                                phone=phone,
+                                email=email,
+                                date=date_obj, 
+                                item=item,
+                                notes=notes
+                            )
+                            
+                            # CalendarStatusを更新または作成
+                            if calendar_status:
+                                calendar_status.is_available = False
+                                calendar_status.save()
+                            else:
+                                CalendarStatus.objects.create(
+                                    date=date_obj,
+                                    item=item,
+                                    is_available=False
+                                )
+                            
+                            return render(request, "reservations/thanks.html", {
+                                "reservation": reservation
+                            })
+                            
+                    except (ValidationError, IntegrityError):
+                        # 競合やバリデーションエラーの場合はerrorsに追加済み
+                        pass
+                        
             except ValueError:
                 errors.append("無効な日付形式です")
                 

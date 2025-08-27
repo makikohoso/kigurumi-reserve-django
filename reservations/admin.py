@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.http import JsonResponse
+from django.db import transaction
 from .models import Reservation, RentalItem, CalendarStatus
 from datetime import date, timedelta
 import json
@@ -87,7 +88,7 @@ class CalendarStatusAdmin(admin.ModelAdmin):
         return TemplateResponse(request, 'admin/calendar_management.html', context)
     
     def update_calendar_status(self, request):
-        """AJAX でカレンダーの状態を更新"""
+        """AJAX でカレンダーの状態を更新（競合解決機能付き）"""
         if request.method == 'POST':
             try:
                 data = json.loads(request.body)
@@ -100,20 +101,46 @@ class CalendarStatusAdmin(admin.ModelAdmin):
                 target_date = date(year, month, day)
                 item = RentalItem.objects.get(id=item_id)
                 
-                status, created = CalendarStatus.objects.get_or_create(
+                # 競合チェック：予約が存在する場合の処理
+                existing_reservations = Reservation.objects.filter(
                     date=target_date,
                     item=item,
-                    defaults={'is_available': is_available}
+                    status='confirmed'
                 )
                 
-                if not created:
-                    status.is_available = is_available
-                    status.save()
+                warnings = []
+                
+                if is_available and existing_reservations.exists():
+                    # 利用可能にしようとしているが、確定予約が存在する
+                    warnings.append(f"この日には{existing_reservations.count()}件の確定予約があります")
+                    # 管理者権限で強制的に利用可能にする場合
+                    if data.get('force_override', False):
+                        warnings.append("管理者権限により強制的に利用可能に設定しました")
+                    else:
+                        return JsonResponse({
+                            'success': False, 
+                            'error': '確定予約がある日を利用可能にすることはできません',
+                            'has_reservations': True,
+                            'reservation_count': existing_reservations.count()
+                        })
+                
+                # トランザクションで競合を回避
+                with transaction.atomic():
+                    status, created = CalendarStatus.objects.select_for_update().get_or_create(
+                        date=target_date,
+                        item=item,
+                        defaults={'is_available': is_available}
+                    )
+                    
+                    if not created:
+                        status.is_available = is_available
+                        status.save()
                 
                 return JsonResponse({
                     'success': True,
                     'is_available': is_available,
-                    'status_text': '◯' if is_available else '✗'
+                    'status_text': '◯' if is_available else '✗',
+                    'warnings': warnings
                 })
                 
             except Exception as e:

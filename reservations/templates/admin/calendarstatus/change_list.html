@@ -1,0 +1,20 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block content_title %}
+    {{ block.super }}
+    <div style="margin: 10px 0;">
+        <a href="calendar-management/" class="button" style="background-color: #417690; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">
+            📊 スプレッドシート形式で管理
+        </a>
+    </div>
+{% endblock %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="calendar-management/" class="addlink">
+            スプレッドシート形式で管理
+        </a>
+    </li>
+{% endblock %}

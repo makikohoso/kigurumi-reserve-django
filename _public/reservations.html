@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-RR1RKSHJFH"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-RR1RKSHJFH');
+    </script>
+    <meta charset="UTF-8">
+    <title>予約状況一覧 - きぐるみ予約システム</title>
+    <!-- favicon設定 -->
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="きぐるみ予約">
+
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-100 text-zinc-600">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-cyan-600">予約状況一覧</h1>
+            <a href="./" class="text-sm text-cyan-600 hover:underline">&larr; 予約カレンダーに戻る</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] p-6">
+            <div id="loading" class="text-center py-10">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-cyan-500 border-t-transparent mx-auto mb-4"></div>
+                <p>データを読み込んでいます...</p>
+            </div>
+            <div id="error" class="text-center py-10 text-red-600 hidden">
+                <p>データの取得に失敗しました。時間をおいてから再度お試しください。</p>
+            </div>
+            <div id="reservations-container" class="hidden">
+                <!-- Header for desktop -->
+                <div class="hidden md:grid md:grid-cols-6 gap-4 font-semibold text-sm text-zinc-800 bg-zinc-100 p-3 rounded-t-lg">
+                    <div>予約日</div>
+                    <div>きぐるみ</div>
+                    <div>営業所</div>
+                    <div>利用場所</div>
+                    <div>コンシェルジュ</div>
+                    <div>ステータス</div>
+                </div>
+                <!-- Data will be inserted here by JavaScript -->
+                <div id="reservations-list" class="bg-white rounded-b-lg"></div>
+            </div>
+        </div>
+    </div>
+    <script src="reservations.js"></script>
+</body>
+</html>

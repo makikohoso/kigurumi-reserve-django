@@ -1,0 +1,245 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extrahead %}
+    <style>
+        .calendar-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        
+        .calendar-table th,
+        .calendar-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        .calendar-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        .date-header {
+            background-color: #f8f8f8;
+            font-size: 14px;
+            width: 120px;
+            font-weight: bold;
+            color: #333;
+            text-align: left;
+        }
+        
+        .item-header {
+            background-color: #e8f4f8;
+            font-size: 14px;
+            min-width: 60px;
+        }
+        
+        .status-cell {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 40px;
+            height: 40px;
+            transition: background-color 0.2s;
+        }
+        
+        .status-cell:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .status-available {
+            color: #28a745;
+        }
+        
+        .status-unavailable {
+            color: #dc3545;
+        }
+        
+        .navigation {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .nav-button {
+            background: #417690;
+            color: white !important;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .nav-button:hover {
+            background: #205067;
+            color: white !important;
+            text-decoration: none;
+        }
+        
+        .month-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="navigation">
+    <a href="?year={{ year }}&month={% if month == 1 %}12&year={{ year|add:'-1' }}{% else %}{{ month|add:'-1' }}{% endif %}" 
+       class="nav-button">前月</a>
+    <span class="month-display">{{ month_name }}</span>
+    <a href="?year={{ year }}&month={% if month == 12 %}1&year={{ year|add:'1' }}{% else %}{{ month|add:'1' }}{% endif %}" 
+       class="nav-button">翌月</a>
+</div>
+
+<div class="results">
+    <table class="calendar-table">
+        <thead>
+            <tr>
+                <th class="date-header">日付</th>
+                {% for item in items %}
+                <th class="item-header">{{ item.name }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for date in dates %}
+            <tr>
+                <td class="date-header">{{ date|date:"Y年n月j日" }}（{% if date|date:"w" == "0" %}日{% elif date|date:"w" == "1" %}月{% elif date|date:"w" == "2" %}火{% elif date|date:"w" == "3" %}水{% elif date|date:"w" == "4" %}木{% elif date|date:"w" == "5" %}金{% else %}土{% endif %}）</td>
+                {% for item in items %}
+                <td class="status-cell" 
+                    data-item-id="{{ item.id }}" 
+                    data-date="{{ date.day }}"
+                    data-year="{{ year }}"
+                    data-month="{{ month }}">
+                    <span class="status-marker" id="status-{{ item.id }}-{{ date.day }}">
+                        <!-- JavaScriptで動的に設定 -->
+                    </span>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+// カレンダーデータをJavaScriptで利用可能にする
+const calendarData = {{ calendar_data|safe }};
+const currentYear = {{ year }};
+const currentMonth = {{ month }};
+
+// ページ読み込み時にステータスマーカーを初期化
+document.addEventListener('DOMContentLoaded', function() {
+    initializeStatusMarkers();
+    attachClickHandlers();
+});
+
+function initializeStatusMarkers() {
+    const statusCells = document.querySelectorAll('.status-cell');
+    
+    statusCells.forEach(cell => {
+        const itemId = cell.getAttribute('data-item-id');
+        const day = cell.getAttribute('data-date');
+        const marker = cell.querySelector('.status-marker');
+        
+        const isAvailable = calendarData[itemId] && calendarData[itemId][day];
+        
+        if (isAvailable) {
+            marker.textContent = '◯';
+            marker.className = 'status-marker status-available';
+        } else {
+            marker.textContent = '✗';
+            marker.className = 'status-marker status-unavailable';
+        }
+    });
+}
+
+function attachClickHandlers() {
+    const statusCells = document.querySelectorAll('.status-cell');
+    
+    statusCells.forEach(cell => {
+        cell.addEventListener('click', function() {
+            const itemId = this.getAttribute('data-item-id');
+            const day = this.getAttribute('data-date');
+            const year = this.getAttribute('data-year');
+            const month = this.getAttribute('data-month');
+            const marker = this.querySelector('.status-marker');
+            
+            // 現在のステータスを反転
+            const currentlyAvailable = marker.classList.contains('status-available');
+            const newStatus = !currentlyAvailable;
+            
+            // サーバーに更新を送信
+            updateCalendarStatus(year, month, day, itemId, newStatus, marker);
+        });
+    });
+}
+
+function updateCalendarStatus(year, month, day, itemId, isAvailable, marker) {
+    const data = {
+        year: parseInt(year),
+        month: parseInt(month),
+        day: parseInt(day),
+        item_id: parseInt(itemId),
+        is_available: isAvailable
+    };
+    
+    fetch('/admin/reservations/calendarstatus/update-calendar-status/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // UIを更新
+            if (data.is_available) {
+                marker.textContent = '◯';
+                marker.className = 'status-marker status-available';
+            } else {
+                marker.textContent = '✗';
+                marker.className = 'status-marker status-unavailable';
+            }
+            
+            // ローカルデータも更新
+            calendarData[itemId][day] = data.is_available;
+        } else {
+            alert('更新に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('通信エラーが発生しました');
+    });
+}
+
+// CSRF トークンを取得する関数
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+{% endblock %}

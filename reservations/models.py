@@ -40,9 +40,10 @@ class Reservation(models.Model):
     # 基本情報
     confirmation_number = models.CharField(
         max_length=12, 
+        unique=True,
         editable=False,
         help_text="予約確認番号（自動生成）",
-        default="KR000000000"
+        blank=True
     )
     name = models.CharField(max_length=100, verbose_name="予約者名")
     
@@ -100,12 +101,12 @@ class Reservation(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.confirmation_number:
+        if not self.confirmation_number or self.confirmation_number == "R000000000":
             self.confirmation_number = self.generate_confirmation_number()
         super().save(*args, **kwargs)
 
     def generate_confirmation_number(self):
-        """予約確認番号を生成（例: KR240827001）"""
+        """予約確認番号を生成（例: R240827001）"""
         import random
         from django.utils import timezone
         
@@ -113,7 +114,7 @@ class Reservation(models.Model):
         while True:
             date_str = timezone.now().strftime('%y%m%d')
             random_num = random.randint(100, 999)
-            confirmation_number = f"KR{date_str}{random_num}"
+            confirmation_number = f"R{date_str}{random_num}"
             
             if not Reservation.objects.filter(confirmation_number=confirmation_number).exists():
                 return confirmation_number

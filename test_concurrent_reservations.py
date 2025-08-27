@@ -59,7 +59,7 @@ def test_concurrent_reservations():
     try:
         # テスト用アイテムを取得または作成
         item, created = RentalItem.objects.get_or_create(
-            name="テスト用きぐるみ",
+            name="テスト用着ぐるみ",
             defaults={'is_active': True}
         )
         

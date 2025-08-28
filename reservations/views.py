@@ -203,16 +203,8 @@ def reserve_form(request):
                                 notes=notes
                             )
                             
-                            # CalendarStatusを更新または作成
-                            if calendar_status:
-                                calendar_status.is_available = False
-                                calendar_status.save()
-                            else:
-                                CalendarStatus.objects.create(
-                                    date=date_obj,
-                                    item=item,
-                                    is_available=False
-                                )
+                            # CalendarStatus管理は在庫ベース管理に移行により不要
+                            # 予約作成のみで完了
                             
                             return render(request, "reservations/thanks.html", {
                                 "reservation": reservation

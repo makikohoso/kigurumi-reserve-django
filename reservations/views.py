@@ -392,10 +392,13 @@ def get_calendar_data_for_item(request, item_id):
                 else:
                     status_text = get_date_status_text(display_date, item, is_current_month, is_past_date)
                 
+                # △も予約可能として扱う
+                is_clickable = is_available or status_text == '△'
+                
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
                     'day': display_date.day,
-                    'is_available': is_available,
+                    'is_available': is_clickable,
                     'is_current_month': is_current_month,
                     'is_past_date': is_past_date,
                     'status_text': status_text
@@ -557,7 +560,7 @@ def get_merged_calendar_data(request):
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
                     'day': display_date.day,
-                    'is_available': is_any_available,
+                    'is_available': is_any_available or best_status == '△',  # △も予約可能として扱う
                     'is_current_month': is_current_month,
                     'is_past_date': is_past_date,
                     'status_text': status_text

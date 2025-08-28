@@ -423,9 +423,12 @@
                         }
                     }
                     
-                    const hoverClass = day.is_available && !isInactive ? 'hover:bg-cyan-50' : '';
-                    const clickable = day.is_available && !isInactive ? `onclick="selectDate('${day.date}')"` : '';
-                    const cursor = day.is_available && !isInactive ? 'cursor-pointer' : 'cursor-not-allowed';
+                    // クリック可否判定：◯と△はクリック可能、✕と休はクリック不可
+                    const isClickable = !isInactive && (day.status_text === '◯' || day.status_text === '△');
+                    
+                    const hoverClass = isClickable ? 'hover:bg-cyan-50' : '';
+                    const clickable = isClickable ? `onclick="selectDate('${day.date}')"` : '';
+                    const cursor = isClickable ? 'cursor-pointer' : 'cursor-not-allowed';
                     
                     
                     // 日付の色（日曜日：赤、土曜日：青、その他：グレー、ただし当月以外は薄く）

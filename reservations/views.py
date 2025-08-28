@@ -310,8 +310,9 @@ def toggle_calendar_status(request):
 
 def reservations_list(request):
     """予約一覧表示（予約者向け）"""
-    # 予約を日付順で取得（名前は含めない）
-    reservations = Reservation.objects.select_related('item').order_by('date', 'item__name')
+    # 今日以降の予約を日付順で取得（名前は含めない）
+    today = date.today()
+    reservations = Reservation.objects.select_related('item').filter(date__gte=today).order_by('date', 'item__name')
     
     context = {
         'reservations': reservations

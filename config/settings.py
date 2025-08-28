@@ -134,6 +134,20 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
+# Media Files Configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Image Upload Settings
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
+ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
+THUMBNAIL_SIZE = (150, 150)
+MAX_IMAGE_SIZE = (800, 600)
+
+# File Upload Security
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
 # Business Rules Configuration
 RESERVATION_SETTINGS = {
     'MAX_ADVANCE_DAYS': 90,  # 最大90日前まで予約可能

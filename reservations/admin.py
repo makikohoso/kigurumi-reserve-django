@@ -3,16 +3,33 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from django.http import JsonResponse
 from django.db import transaction
-from .models import Reservation, RentalItem, CalendarStatus
+from django.utils.html import format_html
+from .models import Reservation, RentalItem, CalendarStatus, RentalItemImage
 from datetime import date, timedelta
 import json
 
+class RentalItemImageInline(admin.TabularInline):
+    model = RentalItemImage
+    extra = 1
+    fields = ('image', 'alt_text', 'order', 'is_primary', 'image_preview')
+    readonly_fields = ('image_preview',)
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px; object-fit: cover;" />',
+                obj.get_thumbnail_url() or obj.image.url
+            )
+        return "画像なし"
+    image_preview.short_description = "プレビュー"
+
 @admin.register(RentalItem)
 class RentalItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'total_stock', 'warning_threshold', 'is_active')
-    list_editable = ('total_stock', 'warning_threshold', 'is_active')  # 一覧画面で直接編集可能
+    list_display = ('name', 'total_stock', 'warning_threshold', 'is_active', 'image_count', 'image_preview')
+    list_editable = ('total_stock', 'warning_threshold', 'is_active')
     search_fields = ('name',)
     list_filter = ('is_active',)
+    inlines = [RentalItemImageInline]
     
     fieldsets = (
         ('基本情報', {
@@ -23,6 +40,20 @@ class RentalItemAdmin(admin.ModelAdmin):
             'description': '総在庫数と警告しきい値を設定できます。残り在庫がしきい値以下になると△表示されます。'
         }),
     )
+    
+    def image_count(self, obj):
+        return obj.images.count()
+    image_count.short_description = "画像数"
+    
+    def image_preview(self, obj):
+        primary_image = obj.get_primary_image()
+        if primary_image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px; object-fit: cover;" />',
+                primary_image.get_thumbnail_url() or primary_image.image.url
+            )
+        return "画像なし"
+    image_preview.short_description = "メイン画像"
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
@@ -171,3 +202,19 @@ class CalendarStatusAdmin(admin.ModelAdmin):
                 return JsonResponse({'success': False, 'error': str(e)})
         
         return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@admin.register(RentalItemImage)
+class RentalItemImageAdmin(admin.ModelAdmin):
+    list_display = ('item', 'order', 'is_primary', 'image_preview', 'created_at')
+    list_filter = ('is_primary', 'item', 'created_at')
+    search_fields = ('item__name', 'alt_text')
+    ordering = ('item__name', 'order')
+    
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 100px; max-width: 100px; object-fit: cover;" />',
+                obj.get_thumbnail_url() or obj.image.url
+            )
+        return "画像なし"
+    image_preview.short_description = "プレビュー"

@@ -1,7 +1,9 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.conf import settings
 from datetime import date
 import uuid
+import os
 
 class RentalItem(models.Model):
     """レンタル物品（きぐるみの種類）"""
@@ -35,12 +37,129 @@ class RentalItem(models.Model):
         else:
             return '◯'
     
+    def get_primary_image(self):
+        """メイン画像を取得"""
+        return self.images.filter(is_primary=True).first()
+    
+    def get_all_images(self):
+        """全画像を順序付きで取得"""
+        return self.images.all().order_by('order', 'id')
+    
+    def has_images(self):
+        """画像があるかチェック"""
+        return self.images.exists()
+    
     def __str__(self):
         return self.name
     
     class Meta:
         verbose_name = "レンタル物品"
         verbose_name_plural = "レンタル物品"
+
+def rental_item_image_path(instance, filename):
+    """画像のアップロードパスを生成"""
+    ext = filename.split('.')[-1]
+    filename = f'{instance.item.id}_{instance.order}_{uuid.uuid4().hex[:8]}.{ext}'
+    return f'rental_items/{filename}'
+
+class RentalItemImage(models.Model):
+    """レンタル物品画像"""
+    item = models.ForeignKey(
+        RentalItem,
+        on_delete=models.CASCADE,
+        related_name='images',
+        verbose_name="レンタル物品"
+    )
+    image = models.ImageField(
+        upload_to=rental_item_image_path,
+        verbose_name="画像",
+        help_text="推奨サイズ: 800x600px, 最大ファイルサイズ: 5MB"
+    )
+    alt_text = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="代替テキスト",
+        help_text="画像の説明（アクセシビリティ向上）"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name="表示順序"
+    )
+    is_primary = models.BooleanField(
+        default=False,
+        verbose_name="メイン画像"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['order', 'id']
+        verbose_name = "レンタル物品画像"
+        verbose_name_plural = "レンタル物品画像"
+        indexes = [
+            models.Index(fields=['item', 'order']),
+            models.Index(fields=['is_primary']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        # メイン画像の重複防止
+        if self.is_primary:
+            RentalItemImage.objects.filter(
+                item=self.item,
+                is_primary=True
+            ).exclude(id=self.id).update(is_primary=False)
+        
+        super().save(*args, **kwargs)
+        
+        # 画像リサイズ処理
+        if self.image and hasattr(self.image, 'path'):
+            self.resize_image()
+    
+    def resize_image(self):
+        """画像リサイズとサムネイル生成"""
+        try:
+            from PIL import Image
+            img_path = self.image.path
+            
+            with Image.open(img_path) as img:
+                # メイン画像のリサイズ (最大800x600)
+                if img.height > 600 or img.width > 800:
+                    img.thumbnail((800, 600), Image.Resampling.LANCZOS)
+                    img.save(img_path, quality=85, optimize=True)
+                
+                # サムネイル生成 (150x150)
+                thumb_path = self.get_thumbnail_path()
+                os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+                
+                thumb = img.copy()
+                thumb.thumbnail((150, 150), Image.Resampling.LANCZOS)
+                thumb.save(thumb_path, quality=85, optimize=True)
+        except Exception as e:
+            print(f"Image processing error: {e}")
+    
+    def get_thumbnail_path(self):
+        """サムネイルパスを取得"""
+        if not self.image:
+            return ''
+        img_path = self.image.path
+        dir_name = os.path.dirname(img_path)
+        base_name = os.path.basename(img_path)
+        name, ext = os.path.splitext(base_name)
+        return os.path.join(dir_name, 'thumbs', f'{name}_thumb{ext}')
+    
+    def get_thumbnail_url(self):
+        """サムネイルURLを取得"""
+        if self.image:
+            img_url = self.image.url
+            dir_name = os.path.dirname(img_url)
+            base_name = os.path.basename(img_url)
+            name, ext = os.path.splitext(base_name)
+            return f'{dir_name}/thumbs/{name}_thumb{ext}'
+        return ''
+    
+    def __str__(self):
+        primary_text = " (メイン)" if self.is_primary else ""
+        return f"{self.item.name} - 画像{self.order}{primary_text}"
 
 class CalendarStatus(models.Model):
     """カレンダーの各日付とアイテムの◯✗状態を管理"""

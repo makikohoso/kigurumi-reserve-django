@@ -7,6 +7,33 @@ class RentalItem(models.Model):
     """レンタル物品（きぐるみの種類）"""
     name = models.CharField(max_length=100, unique=True)  # レンタル物品名
     is_active = models.BooleanField(default=True)  # 利用可能かどうか
+    total_stock = models.PositiveIntegerField(default=1, verbose_name="総在庫数")  # 総在庫数
+    warning_threshold = models.PositiveIntegerField(default=1, verbose_name="警告しきい値")  # 残り何個になったら△表示
+    
+    def get_available_stock_for_date(self, target_date):
+        """指定日の利用可能在庫数を取得"""
+        reserved_count = self.reservation_set.filter(
+            date=target_date,
+            status__in=['confirmed', 'pending']
+        ).count()
+        return max(0, self.total_stock - reserved_count)
+    
+    def is_available_for_date(self, target_date):
+        """指定日に予約可能かチェック"""
+        return self.get_available_stock_for_date(target_date) > 0
+    
+    def get_status_for_date(self, target_date):
+        """指定日のステータス表示を取得（◯/△/✕）"""
+        if not self.is_active:
+            return '✕'
+        
+        available_stock = self.get_available_stock_for_date(target_date)
+        if available_stock == 0:
+            return '✕'
+        elif available_stock <= self.warning_threshold:
+            return '△'
+        else:
+            return '◯'
     
     def __str__(self):
         return self.name

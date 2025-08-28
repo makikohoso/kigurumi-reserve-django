@@ -9,10 +9,20 @@ import json
 
 @admin.register(RentalItem)
 class RentalItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active')
-    list_editable = ('is_active',)  # 一覧画面で直接編集可能
+    list_display = ('name', 'total_stock', 'warning_threshold', 'is_active')
+    list_editable = ('total_stock', 'warning_threshold', 'is_active')  # 一覧画面で直接編集可能
     search_fields = ('name',)
     list_filter = ('is_active',)
+    
+    fieldsets = (
+        ('基本情報', {
+            'fields': ('name', 'is_active')
+        }),
+        ('在庫管理', {
+            'fields': ('total_stock', 'warning_threshold'),
+            'description': '総在庫数と警告しきい値を設定できます。残り在庫がしきい値以下になると△表示されます。'
+        }),
+    )
 
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):

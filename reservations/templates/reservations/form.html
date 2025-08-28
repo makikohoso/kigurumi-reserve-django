@@ -124,6 +124,10 @@
                         <span class="text-xs sm:text-sm md:text-base">予約可能</span>
                     </div>
                     <div class="flex items-center">
+                        <div class="mr-1 sm:mr-2 text-orange-500 text-sm sm:text-base">△</div>
+                        <span class="text-xs sm:text-sm md:text-base">残りわずか</span>
+                    </div>
+                    <div class="flex items-center">
                         <div class="mr-1 sm:mr-2 text-red-600 text-sm sm:text-base">✕</div>
                         <span class="text-xs sm:text-sm md:text-base">予約不可</span>
                     </div>
@@ -404,8 +408,21 @@
                 week.forEach((day, index) => {
                     // 当月以外または過去の日付は薄いグレー
                     const isInactive = !day.is_current_month || day.is_past_date;
-                    const statusColor = isInactive ? 'text-gray-300' : 
-                                       day.is_available ? 'text-cyan-600' : 'text-red-600';
+                    
+                    // ステータスに基づく色設定
+                    let statusColor = 'text-gray-300';
+                    if (!isInactive) {
+                        if (day.status_text === '◯') {
+                            statusColor = 'text-cyan-600';
+                        } else if (day.status_text === '△') {
+                            statusColor = 'text-orange-500';
+                        } else if (day.status_text === '✕') {
+                            statusColor = 'text-red-600';
+                        } else if (day.status_text === '休') {
+                            statusColor = 'text-gray-600';
+                        }
+                    }
+                    
                     const hoverClass = day.is_available && !isInactive ? 'hover:bg-cyan-50' : '';
                     const clickable = day.is_available && !isInactive ? `onclick="selectDate('${day.date}')"` : '';
                     const cursor = day.is_available && !isInactive ? 'cursor-pointer' : 'cursor-not-allowed';

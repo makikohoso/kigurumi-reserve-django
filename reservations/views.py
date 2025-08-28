@@ -73,6 +73,24 @@ def check_date_availability(target_date, item, is_current_month=True, is_past_da
     if is_past_date or not is_current_month:
         return False
     
+    # 在庫ベースの可用性チェック
+    return item.is_available_for_date(target_date)
+
+def get_date_status_text(target_date, item, is_current_month=True, is_past_date=False):
+    """日付のステータステキスト（◯/△/✕）を取得"""
+    # 過去の日付や当月以外、物品が非アクティブの場合
+    if is_past_date or not is_current_month or not item.is_active:
+        return '-'
+    
+    # 在庫ベースのステータス取得
+    return item.get_status_for_date(target_date)
+
+def check_date_availability_legacy(target_date, item, is_current_month=True, is_past_date=False):
+    """レガシー: CalendarStatusを使った日付の予約可能性チェック（後方互換性）"""
+    # 過去の日付や当月以外は利用不可
+    if is_past_date or not is_current_month:
+        return False
+    
     # 予約の存在チェック（優先）
     if Reservation.objects.filter(
         date=target_date, 
@@ -372,7 +390,7 @@ def get_calendar_data_for_item(request, item_id):
                 if display_date.weekday() == 6 and is_current_month and not is_past_date:
                     status_text = '休'
                 else:
-                    status_text = '◯' if is_available else ('✗' if is_current_month and not is_past_date else '-')
+                    status_text = get_date_status_text(display_date, item, is_current_month, is_past_date)
                 
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),
@@ -502,29 +520,39 @@ def get_merged_calendar_data(request):
                 min_reservation_date = today + timedelta(days=settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS'])
                 is_past_date = display_date < min_reservation_date
                 
-                # 全物品での可用性をチェック（最適化版）
+                # 全物品での可用性をチェック（在庫ベース）
                 is_any_available = False
+                best_status = '✕'  # 最良のステータスを追跡（優先順位：◯ > △ > ✕）
+                
                 if not is_past_date and is_current_month:
                     # 日曜日（休業日）チェック
                     if display_date.weekday() == 6:  # 日曜日
                         is_any_available = False
+                        best_status = '休'
                     else:
                         for item_id in active_items:
-                            # 予約チェック
-                            if (display_date, item_id) in reserved_dates:
+                            try:
+                                item = RentalItem.objects.get(id=item_id)
+                                item_status = item.get_status_for_date(display_date)
+                                if item_status == '◯':
+                                    is_any_available = True
+                                    best_status = '◯'
+                                    break  # ◯が見つかったら最優先
+                                elif item_status == '△':
+                                    is_any_available = True
+                                    if best_status != '◯':
+                                        best_status = '△'
+                                # ✕の場合は何もしない（デフォルト）
+                            except RentalItem.DoesNotExist:
                                 continue
-                            
-                            # カレンダー状態チェック
-                            calendar_available = calendar_status_dict.get((display_date, item_id), True)
-                            if calendar_available:
-                                is_any_available = True
-                                break
                 
-                # 休業日の場合の表示調整
+                # ステータステキストの設定
                 if display_date.weekday() == 6 and is_current_month and not is_past_date:
                     status_text = '休'
+                elif is_current_month and not is_past_date:
+                    status_text = best_status
                 else:
-                    status_text = '◯' if is_any_available else ('✗' if is_current_month and not is_past_date else '-')
+                    status_text = '-'
                 
                 week_data.append({
                     'date': display_date.strftime('%Y-%m-%d'),

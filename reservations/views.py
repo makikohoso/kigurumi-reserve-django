@@ -178,23 +178,24 @@ def reserve_form(request):
                     # トランザクション処理で同時予約競合を回避
                     try:
                         with transaction.atomic():
-                            # 予約可能性の最終チェック（ロック付き）
-                            existing_reservation = Reservation.objects.select_for_update().filter(
+                            # 在庫ベースの予約可能性の最終チェック（ロック付き）
+                            confirmed_reservations_count = Reservation.objects.select_for_update().filter(
                                 date=date_obj,
                                 item=item,
                                 status='confirmed'
-                            ).first()
+                            ).count()
                             
-                            if existing_reservation:
-                                errors.append("申し訳ございませんが、この日時は既に予約済みです")
-                                raise ValidationError("予約競合")
+                            if confirmed_reservations_count >= item.total_stock:
+                                errors.append("申し訳ございませんが、この日時の在庫がありません")
+                                raise ValidationError("在庫不足")
                             
-                            # CalendarStatusもロックして確認
+                            # CalendarStatusもロックして確認（後方互換性のため）
                             calendar_status = CalendarStatus.objects.select_for_update().filter(
                                 date=date_obj,
                                 item=item
                             ).first()
                             
+                            # CalendarStatusで明示的に無効になっている場合のみチェック
                             if calendar_status and not calendar_status.is_available:
                                 errors.append("この日時は予約できません")
                                 raise ValidationError("利用不可日")

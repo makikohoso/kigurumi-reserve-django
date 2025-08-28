@@ -23,7 +23,7 @@ def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None
     if date_obj > (now.date() + max_advance):
         errors.append(f"予約は{settings.RESERVATION_SETTINGS['MAX_ADVANCE_DAYS']}日前までしかできません")
     
-    if date_obj <= (now.date() + min_advance):
+    if date_obj < (now.date() + min_advance):
         errors.append(f"予約は{settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS']}日前までに行ってください")
     
     # 2. 同日同一ユーザーの予約制限（電話番号ベース）

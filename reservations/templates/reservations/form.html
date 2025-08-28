@@ -410,6 +410,18 @@
                     const clickable = day.is_available && !isInactive ? `onclick="selectDate('${day.date}')"` : '';
                     const cursor = day.is_available && !isInactive ? 'cursor-pointer' : 'cursor-not-allowed';
                     
+                    // 9月2日のデバッグ情報
+                    if (day.date === '2025-09-02') {
+                        console.log('9月2日セル情報:', {
+                            date: day.date,
+                            is_current_month: day.is_current_month,
+                            is_past_date: day.is_past_date,
+                            is_available: day.is_available,
+                            isInactive: isInactive,
+                            clickable: clickable
+                        });
+                    }
+                    
                     // 日付の色（日曜日：赤、土曜日：青、その他：グレー、ただし当月以外は薄く）
                     let dayColor = 'text-gray-700';
                     if (isInactive) {
@@ -474,7 +486,9 @@
         
         // カレンダーの日付選択関数
         function selectDate(dateStr) {
+            console.log('selectDate called with:', dateStr);
             if (currentItemId === null) {
+                console.log('マージ表示モード - 物品取得開始');
                 // マージ表示時：選択された日付に予約可能な物品を取得
                 fetch(`/available-items/?date=${dateStr}`, {
                     method: 'GET',
@@ -484,14 +498,18 @@
                 })
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Available items response:', data);
                     if (data.success) {
+                        console.log('データ取得成功 - 利用可能物品数:', data.available_items.length);
                         // 物品選択肢を更新
                         updateItemOptions(data.available_items);
                         
                         // 日付フィールドを確実に設定
+                        console.log('日付フィールドに設定:', dateStr);
                         document.getElementById('date').value = dateStr;
                         if (datePicker) {
                             datePicker.setDate(dateStr, false);
+                            console.log('flatpickrに日付設定完了');
                         }
                         
                         // 選択された日付をハイライト表示

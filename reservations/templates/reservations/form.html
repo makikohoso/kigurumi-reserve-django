@@ -204,6 +204,9 @@
         let datePicker = null;
         
         function initializeDatePicker(disabledDates = []) {
+            // 現在選択されている日付を保存
+            const currentSelectedDate = document.getElementById('date').value;
+            
             if (datePicker) {
                 datePicker.destroy();
             }
@@ -214,12 +217,15 @@
             const oneYearLater = new Date();
             oneYearLater.setFullYear(today.getFullYear() + 1);
             
+            // デフォルト日付を決定（現在選択されている日付があればそれを使用、なければminDate）
+            const defaultDate = currentSelectedDate || minDate;
+            
             datePicker = flatpickr("#date", {
                 locale: "ja",
                 dateFormat: "Y-m-d",
                 minDate: minDate,
                 maxDate: oneYearLater,
-                defaultDate: minDate,
+                defaultDate: defaultDate,
                 disable: disabledDates,
                 onChange: function(selectedDates, dateStr, instance) {
                     // 日付が選択されたときの処理

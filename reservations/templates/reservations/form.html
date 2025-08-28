@@ -209,15 +209,17 @@
             }
             
             const today = new Date();
+            const minDate = new Date();
+            minDate.setDate(today.getDate() + 5); // 5日後から予約可能
             const oneYearLater = new Date();
             oneYearLater.setFullYear(today.getFullYear() + 1);
             
             datePicker = flatpickr("#date", {
                 locale: "ja",
                 dateFormat: "Y-m-d",
-                minDate: today,
+                minDate: minDate,
                 maxDate: oneYearLater,
-                defaultDate: today,
+                defaultDate: minDate,
                 disable: disabledDates,
                 onChange: function(selectedDates, dateStr, instance) {
                     // 日付が選択されたときの処理
@@ -300,9 +302,11 @@
             });
         }
         
-        // 現在の表示月を管理
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth() + 1;
+        // 現在の表示月を管理（予約可能日からの月を設定）
+        const minReservationDate = new Date();
+        minReservationDate.setDate(minReservationDate.getDate() + 5);
+        let currentYear = minReservationDate.getFullYear();
+        let currentMonth = minReservationDate.getMonth() + 1;
         let currentItemId = null;
         
         // マージされたカレンダーデータを読み込む関数
@@ -410,9 +414,9 @@
                         dayColor = 'text-cyan-700';
                     }
                     
-                    html += `<td class="day-cell border-l border-t p-1 sm:p-2 text-center min-h-[60px] sm:min-h-[70px] md:min-h-[80px] ${hoverClass}">
+                    html += `<td class="day-cell border-l border-t p-1 sm:p-2 text-center min-h-[60px] sm:min-h-[70px] md:min-h-[80px] ${hoverClass} ${cursor}" ${clickable}>
                         <div class="text-xs sm:text-sm md:text-base mb-1 ${dayColor}">${day.day}</div>
-                        <div class="status-marker ${cursor} text-sm sm:text-base md:text-lg ${statusColor} transition-colors" ${clickable}>
+                        <div class="status-marker text-sm sm:text-base md:text-lg ${statusColor} transition-colors">
                             ${day.status_text}
                         </div>
                     </td>`;

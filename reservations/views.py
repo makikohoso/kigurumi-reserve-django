@@ -18,13 +18,13 @@ def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None
     
     # 1. 予約期間制限チェック
     max_advance = timedelta(days=settings.RESERVATION_SETTINGS['MAX_ADVANCE_DAYS'])
-    min_advance = timedelta(hours=settings.RESERVATION_SETTINGS['MIN_ADVANCE_HOURS'])
+    min_advance = timedelta(days=settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS'])
     
     if date_obj > (now.date() + max_advance):
         errors.append(f"予約は{settings.RESERVATION_SETTINGS['MAX_ADVANCE_DAYS']}日前までしかできません")
     
-    if date_obj <= (now + min_advance).date():
-        errors.append(f"予約は{settings.RESERVATION_SETTINGS['MIN_ADVANCE_HOURS']}時間前までに行ってください")
+    if date_obj <= (now.date() + min_advance):
+        errors.append(f"予約は{settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS']}日前までに行ってください")
     
     # 2. 同日同一ユーザーの予約制限（電話番号ベース）
     if phone:
@@ -357,7 +357,9 @@ def get_calendar_data_for_item(request, item_id):
                 
                 # 当月かどうかを判定
                 is_current_month = display_date.month == month
-                is_past_date = display_date < today
+                # MIN_ADVANCE_DAYSを考慮した予約可能日制限
+                min_reservation_date = today + timedelta(days=settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS'])
+                is_past_date = display_date < min_reservation_date
                 
                 # 予約状況を効率的にチェック（休業日考慮）
                 if display_date.weekday() == 6 and is_current_month and not is_past_date:  # 日曜日
@@ -415,7 +417,9 @@ def check_availability(request):
             item = get_object_or_404(RentalItem, id=item_id, is_active=True)
             
             # 統合された可用性チェック
-            is_past_date = target_date < date.today()
+            # MIN_ADVANCE_DAYSを考慮した予約可能日制限
+            min_reservation_date = date.today() + timedelta(days=settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS'])
+            is_past_date = target_date < min_reservation_date
             available = check_date_availability(target_date, item, True, is_past_date)
             
             reason = None
@@ -493,7 +497,9 @@ def get_merged_calendar_data(request):
                 
                 # 当月かどうかを判定
                 is_current_month = display_date.month == month
-                is_past_date = display_date < today
+                # MIN_ADVANCE_DAYSを考慮した予約可能日制限
+                min_reservation_date = today + timedelta(days=settings.RESERVATION_SETTINGS['MIN_ADVANCE_DAYS'])
+                is_past_date = display_date < min_reservation_date
                 
                 # 全物品での可用性をチェック（最適化版）
                 is_any_available = False

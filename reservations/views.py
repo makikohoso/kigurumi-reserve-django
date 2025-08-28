@@ -189,16 +189,9 @@ def reserve_form(request):
                                 errors.append("申し訳ございませんが、この日時の在庫がありません")
                                 raise ValidationError("在庫不足")
                             
-                            # CalendarStatusもロックして確認（後方互換性のため）
-                            calendar_status = CalendarStatus.objects.select_for_update().filter(
-                                date=date_obj,
-                                item=item
-                            ).first()
-                            
-                            # CalendarStatusで明示的に無効になっている場合のみチェック
-                            if calendar_status and not calendar_status.is_available:
-                                errors.append("この日時は予約できません")
-                                raise ValidationError("利用不可日")
+                            # CalendarStatusチェックは在庫管理移行により無効化
+                            # 在庫数ベースの管理に統一
+                            pass
                             
                             # 予約を作成
                             reservation = Reservation.objects.create(

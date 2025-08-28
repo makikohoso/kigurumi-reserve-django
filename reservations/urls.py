@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     reserve_form, reservations_list, get_calendar_data_for_item, 
     check_availability, get_disabled_dates, reservation_lookup, 
-    cancel_reservation, get_merged_calendar_data, get_available_items_for_date
+    cancel_reservation, get_merged_calendar_data, get_available_items_for_date,
+    get_item_images
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     path("disabled-dates/<int:item_id>/", get_disabled_dates, name="get_disabled_dates"),
     path("lookup/", reservation_lookup, name="reservation_lookup"),
     path("cancel/<str:confirmation_number>/", cancel_reservation, name="cancel_reservation"),
+    path("item-images/<int:item_id>/", get_item_images, name="item_images"),
 ]

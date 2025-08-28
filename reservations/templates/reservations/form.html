@@ -166,9 +166,28 @@
                     <select id="item" name="item" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
                         <option value="">選択してください</option>
                         {% for item in items %}
-                            <option value="{{ item.id }}" {% if form_data.item == item.id|stringformat:"s" %}selected{% endif %}>{{ item.name }}</option>
+                            <option value="{{ item.id }}" 
+                                    data-image-url="{% if item.get_primary_image %}{{ item.get_primary_image.get_thumbnail_url|default:item.get_primary_image.image.url }}{% endif %}"
+                                    data-image-alt="{% if item.get_primary_image %}{{ item.get_primary_image.alt_text|default:item.name }}{% endif %}"
+                                    {% if form_data.item == item.id|stringformat:"s" %}selected{% endif %}>
+                                {{ item.name }}
+                            </option>
                         {% endfor %}
                     </select>
+                    
+                    <!-- 選択された物品の画像表示エリア -->
+                    <div id="selected-item-image" class="mt-4 hidden">
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
+                            <div class="flex-shrink-0">
+                                <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-md shadow-sm">
+                            </div>
+                            <div id="item-info">
+                                <p class="font-medium text-base text-gray-900" id="item-name"></p>
+                                <p class="text-sm text-gray-600">選択された物品</p>
+                                <p class="text-xs text-gray-500 mt-1">※ 実際の商品と色合いが異なる場合があります</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div>
@@ -270,9 +289,13 @@
             }
         });
 
-        // フォームの物品選択変更イベント（flatpickr更新用）
+        // フォームの物品選択変更イベント（flatpickr更新用・画像表示用）
         document.getElementById('item').addEventListener('change', function() {
             const itemId = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            
+            // 画像表示の更新
+            updateItemImageDisplay(selectedOption);
             
             if (itemId === '') {
                 // 物品未選択の場合は無効日付なし
@@ -282,6 +305,26 @@
                 updateDatePickerDisabledDates(itemId);
             }
         });
+        
+        // 物品画像表示を更新する関数
+        function updateItemImageDisplay(selectedOption) {
+            const imageContainer = document.getElementById('selected-item-image');
+            const itemImage = document.getElementById('item-image');
+            const itemName = document.getElementById('item-name');
+            
+            if (selectedOption.value && selectedOption.dataset.imageUrl) {
+                // 画像がある場合
+                itemImage.src = selectedOption.dataset.imageUrl;
+                itemImage.alt = selectedOption.dataset.imageAlt || selectedOption.text;
+                itemName.textContent = selectedOption.text;
+                imageContainer.classList.remove('hidden');
+                imageContainer.classList.add('fade-in');
+            } else {
+                // 画像がない場合は非表示
+                imageContainer.classList.add('hidden');
+                imageContainer.classList.remove('fade-in');
+            }
+        }
         
         // 予約不可日付を取得してflatpickrを更新する関数
         function updateDatePickerDisabledDates(itemId) {
@@ -632,9 +675,16 @@
             });
         }
         
-        // ページ読み込み時に初期カレンダーを表示
+        // ページ読み込み時に初期カレンダーを表示・画像初期化
         document.addEventListener('DOMContentLoaded', function() {
             loadMergedCalendar();
+            
+            // 既に物品が選択されている場合の画像表示初期化
+            const itemSelect = document.getElementById('item');
+            if (itemSelect.value) {
+                const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+                updateItemImageDisplay(selectedOption);
+            }
         });
     </script>
 </body>

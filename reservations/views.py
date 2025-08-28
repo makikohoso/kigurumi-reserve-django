@@ -312,6 +312,32 @@ def toggle_calendar_status(request):
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
+def get_item_images(request, item_id):
+    """物品画像を取得するAPI"""
+    try:
+        item = get_object_or_404(RentalItem, id=item_id, is_active=True)
+        images = []
+        
+        for img in item.get_all_images():
+            images.append({
+                'id': img.id,
+                'url': img.image.url,
+                'thumbnail_url': img.get_thumbnail_url(),
+                'alt_text': img.alt_text,
+                'is_primary': img.is_primary,
+                'order': img.order
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'item_name': item.name,
+            'images': images
+        })
+    except RentalItem.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Item not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
 def reservations_list(request):
     """予約一覧表示（予約者向け）"""
     # 今日以降の予約を日付順で取得（名前は含めない）

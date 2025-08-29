@@ -125,6 +125,90 @@
       .dropdown-options.show {
         display: block;
       }
+      
+      /* モーダルスタイル */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(3px);
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 90vw;
+        max-height: 90vh;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        animation: scaleIn 0.3s ease-out;
+      }
+      
+      .modal-image {
+        width: 100%;
+        height: auto;
+        max-height: 80vh;
+        object-fit: contain;
+        display: block;
+      }
+      
+      .modal-caption {
+        padding: 16px 20px;
+        background: white;
+        font-size: 16px;
+        font-weight: 500;
+        color: #374151;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+      }
+      
+      .modal-close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+      }
+      
+      .modal-close:hover {
+        background: rgba(0, 0, 0, 0.7);
+      }
+      
+      @keyframes scaleIn {
+        from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+        to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      
+      /* 画像をクリック可能であることを示すカーソル */
+      .clickable-image {
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+      
+      .clickable-image:hover {
+        opacity: 0.8;
+      }
     </style>
 </head>
 <body class="bg-zinc-100 text-zinc-600">
@@ -166,7 +250,7 @@
                 <div id="selected-item-image" class="hidden">
                     <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
                         <div class="flex-shrink-0">
-                            <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-md shadow-sm">
+                            <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-md shadow-sm clickable-image" onclick="openImageModal(this)">
                         </div>
                         <div id="item-info">
                             <p class="font-medium text-base text-gray-900" id="item-name"></p>
@@ -279,7 +363,56 @@
         </div>
     </div>
 
+    <!-- 画像モーダル -->
+    <div id="imageModal" class="modal">
+        <span class="modal-close" onclick="closeImageModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" class="modal-image" src="" alt="">
+            <div id="modalCaption" class="modal-caption"></div>
+        </div>
+    </div>
+
     <script>
+        // 画像モーダル機能
+        function openImageModal(imgElement) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const caption = document.getElementById('modalCaption');
+            
+            // data-large-url属性から大きな画像のURLを取得、なければ元のsrcを使用
+            const largeImageSrc = imgElement.getAttribute('data-large-url') || imgElement.src;
+            
+            console.log('Opening modal with image:', largeImageSrc); // デバッグ用
+            
+            modalImg.src = largeImageSrc;
+            modalImg.alt = imgElement.alt;
+            caption.innerHTML = imgElement.alt || '画像詳細';
+            
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // スクロールを無効化
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // スクロールを有効化
+        }
+        
+        // モーダル外をクリックしたときに閉じる
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target === modal) {
+                closeImageModal();
+            }
+        });
+        
+        // ESCキーでモーダルを閉じる
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageModal();
+            }
+        });
+        
         // flatpickrの初期化
         let datePicker = null;
         
@@ -406,6 +539,9 @@
             if (imageUrl) {
                 itemImage.src = imageUrl;
                 itemImage.alt = imageAlt || selectedOption.textContent;
+                // 大きな画像のURLをdata属性に保存（ドロップダウンサイズから元のサイズへ変換）
+                const largeImageUrl = imageUrl.replace('/dropdown/', '/').replace('_dropdown', '');
+                itemImage.setAttribute('data-large-url', largeImageUrl);
                 itemName.textContent = selectedOption.textContent;
                 imageContainer.classList.remove('hidden');
                 imageContainer.classList.add('fade-in');
@@ -449,6 +585,8 @@
                 // 画像がある場合
                 itemImage.src = selectedOption.dataset.imageUrl;
                 itemImage.alt = selectedOption.dataset.imageAlt || selectedOption.text;
+                // 大きな画像のURLをdata属性に保存（フォームの場合は既に大きなサイズ）
+                itemImage.setAttribute('data-large-url', selectedOption.dataset.imageUrl);
                 itemName.textContent = selectedOption.text;
                 imageContainer.classList.remove('hidden');
                 imageContainer.classList.add('fade-in');

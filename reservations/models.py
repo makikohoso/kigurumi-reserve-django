@@ -134,6 +134,14 @@ class RentalItemImage(models.Model):
                 thumb = img.copy()
                 thumb.thumbnail((150, 150), Image.Resampling.LANCZOS)
                 thumb.save(thumb_path, quality=85, optimize=True)
+                
+                # ドロップダウン用小サムネイル生成 (48x48)
+                dropdown_path = self.get_dropdown_thumbnail_path()
+                os.makedirs(os.path.dirname(dropdown_path), exist_ok=True)
+                
+                dropdown = img.copy()
+                dropdown.thumbnail((48, 48), Image.Resampling.LANCZOS)
+                dropdown.save(dropdown_path, quality=85, optimize=True)
         except Exception as e:
             print(f"Image processing error: {e}")
     
@@ -155,6 +163,26 @@ class RentalItemImage(models.Model):
             base_name = os.path.basename(img_url)
             name, ext = os.path.splitext(base_name)
             return f'{dir_name}/thumbs/{name}_thumb{ext}'
+        return ''
+    
+    def get_dropdown_thumbnail_path(self):
+        """ドロップダウン用小サムネイルパスを取得"""
+        if not self.image:
+            return ''
+        img_path = self.image.path
+        dir_name = os.path.dirname(img_path)
+        base_name = os.path.basename(img_path)
+        name, ext = os.path.splitext(base_name)
+        return os.path.join(dir_name, 'dropdown', f'{name}_dropdown{ext}')
+    
+    def get_dropdown_thumbnail_url(self):
+        """ドロップダウン用小サムネイルURLを取得"""
+        if self.image:
+            img_url = self.image.url
+            dir_name = os.path.dirname(img_url)
+            base_name = os.path.basename(img_url)
+            name, ext = os.path.splitext(base_name)
+            return f'{dir_name}/dropdown/{name}_dropdown{ext}'
         return ''
     
     def __str__(self):

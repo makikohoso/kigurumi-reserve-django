@@ -209,6 +209,11 @@
       .clickable-image:hover {
         opacity: 0.8;
       }
+      
+      /* 休業日のカスタムカラー */
+      .text-holiday {
+        color: #e49595;
+      }
     </style>
 </head>
 <body class="bg-zinc-100 text-zinc-600">
@@ -287,7 +292,7 @@
                         <span class="text-xs sm:text-sm md:text-base">予約不可</span>
                     </div>
                     <div class="flex items-center">
-                        <div class="mr-1 sm:mr-2 text-gray-600 text-sm sm:text-base">休</div>
+                        <div class="mr-1 sm:mr-2 text-holiday text-sm sm:text-base">休</div>
                         <span class="text-xs sm:text-sm md:text-base">休業日</span>
                     </div>
                 </div>
@@ -542,7 +547,7 @@
                 // 大きな画像のURLをdata属性に保存（ドロップダウンサイズから元のサイズへ変換）
                 const largeImageUrl = imageUrl.replace('/dropdown/', '/').replace('_dropdown', '');
                 itemImage.setAttribute('data-large-url', largeImageUrl);
-                itemName.textContent = selectedOption.textContent;
+                itemName.textContent = selectedOption.textContent.replace('のみ表示', '');
                 imageContainer.classList.remove('hidden');
                 imageContainer.classList.add('fade-in');
             } else {
@@ -733,7 +738,7 @@
                         } else if (day.status_text === '✕') {
                             statusColor = 'text-red-600';
                         } else if (day.status_text === '休') {
-                            statusColor = 'text-gray-600';
+                            statusColor = 'text-holiday';
                         }
                     }
                     

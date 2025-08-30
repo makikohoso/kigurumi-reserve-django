@@ -321,6 +321,17 @@
             
             <form method="post" class="space-y-5 sm:space-y-6">
                 {% csrf_token %}
+                
+                {% if errors %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                        <h3 class="font-semibold text-red-800 mb-2">エラーが発生しました</h3>
+                        <ul class="text-sm text-red-700 space-y-1">
+                            {% for error in errors %}
+                                <li>• {{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
                 <div>
                     <label for="item" class="block font-semibold mb-2 text-sm md:text-base">レンタル物品 *</label>
                     <select id="item" name="item" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
@@ -361,7 +372,7 @@
                     <textarea id="notes" name="notes" class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3" placeholder="特記事項があれば記入してください">{{ form_data.notes|default:'' }}</textarea>
                 </div>
                 
-                <button type="submit" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">予約する</button>
+                <button type="submit" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">確認する</button>
                 
                 <div id="message" class="mt-4 text-center hidden text-sm md:text-base"></div>
             </form>
@@ -951,10 +962,29 @@
             });
         }
         
+        // フォーム送信処理
+        function handleFormSubmission() {
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const messageDiv = document.getElementById('message');
+                const submitButton = form.querySelector('button[type="submit"]');
+                
+                // ボタンを無効化してローディング表示
+                submitButton.disabled = true;
+                submitButton.textContent = '処理中...';
+                messageDiv.className = 'mt-4 text-center text-sm md:text-base text-blue-600';
+                messageDiv.textContent = '予約内容を確認しています...';
+                messageDiv.classList.remove('hidden');
+                
+                // 通常のフォーム送信を継続（サーバーサイドリダイレクトを利用）
+            });
+        }
+
         // ページ読み込み時に初期カレンダーを表示・画像初期化
         document.addEventListener('DOMContentLoaded', function() {
             loadMergedCalendar();
             enhanceDropdown();
+            handleFormSubmission(); // フォーム送信処理を初期化
             
             // 既に物品が選択されている場合の画像表示初期化
             const itemSelect = document.getElementById('item');

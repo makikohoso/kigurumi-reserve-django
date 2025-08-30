@@ -1,15 +1,19 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.contrib import messages
 from .models import Reservation, RentalItem, CalendarStatus
 from datetime import datetime, date, timedelta
 import json
 import time
 import re
+import logging
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None):
     """予約ビジネスルールの検証"""
@@ -175,64 +179,45 @@ def reserve_form(request):
                 errors.extend(business_rule_errors)
                 
                 if not errors:
-                    # トランザクション処理で同時予約競合を回避
-                    try:
-                        with transaction.atomic():
-                            # 在庫ベースの予約可能性の最終チェック（ロック付き）
-                            confirmed_reservations_count = Reservation.objects.select_for_update().filter(
-                                date=date_obj,
-                                item=item,
-                                status__in=['adjusting', 'completed']
-                            ).count()
-                            
-                            if confirmed_reservations_count >= item.total_stock:
-                                errors.append("申し訳ございませんが、この日時の在庫がありません")
-                                raise ValidationError("在庫不足")
-                            
-                            # CalendarStatusチェックは在庫管理移行により無効化
-                            # 在庫数ベースの管理に統一
-                            pass
-                            
-                            # 予約を作成
-                            reservation = Reservation.objects.create(
-                                name=name, 
-                                phone=phone,
-                                email=email,
-                                date=date_obj, 
-                                item=item,
-                                notes=notes,
-                                status='adjusting'  # 明示的に調整中で作成
-                            )
-                            
-                            # CalendarStatus管理は在庫ベース管理に移行により不要
-                            # 予約作成のみで完了
-                            
-                            return render(request, "reservations/thanks.html", {
-                                "reservation": reservation
-                            })
-                            
-                    except (ValidationError, IntegrityError):
-                        # 競合やバリデーションエラーの場合はerrorsに追加済み
-                        pass
+                    # セッションに予約データを保存
+                    reservation_data = {
+                        'name': name,
+                        'phone': phone,
+                        'email': email,
+                        'date': date_str,
+                        'item_id': item_id,
+                        'notes': notes
+                    }
+                    
+                    # セッションにデータを保存
+                    request.session['pending_reservation'] = reservation_data
+                    request.session.modified = True
+                    
+                    # デバッグ情報
+                    if settings.DEBUG:
+                        print(f"Debug - Saving reservation data to session: {reservation_data}")
+                        print(f"Debug - Session key: {request.session.session_key}")
+                    
+                    # サーバーサイドリダイレクトで確認画面へ
+                    return redirect('reservation_confirm')
                         
             except ValueError:
                 errors.append("無効な日付形式です")
                 
         if errors:
+            # 利用可能なレンタル物品を取得
             items = RentalItem.objects.filter(is_active=True)
-            # エラー時は入力された値を保持
-            form_data = {
-                "name": name or "",
-                "phone": phone or "",
-                "email": email or "",
-                "date": date_str or "",  # 入力された日付を保持
-                "item": item_id or "",
-                "notes": notes or ""
-            }
             return render(request, "reservations/form.html", {
                 "items": items,
                 "errors": errors,
-                "form_data": form_data
+                "form_data": {
+                    "name": name,
+                    "phone": phone,
+                    "email": email,
+                    "date": date_str,
+                    "item": item_id,
+                    "notes": notes
+                }
             })
     
     # 利用可能なレンタル物品を取得
@@ -338,6 +323,94 @@ def get_item_images(request, item_id):
         return JsonResponse({'success': False, 'error': 'Item not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+def reservation_confirm(request):
+    """予約確認画面"""
+    # セッションから予約データを取得
+    reservation_data = request.session.get('pending_reservation')
+    
+    if not reservation_data:
+        messages.error(request, "予約データが見つかりません。最初からやり直してください。")
+        return redirect('reserve_form')
+    
+    try:
+        # 日付文字列を日付オブジェクトに変換
+        date_obj = datetime.strptime(reservation_data['date'], "%Y-%m-%d").date()
+        item = get_object_or_404(RentalItem, id=reservation_data['item_id'], is_active=True)
+        
+        # デバッグ情報
+        if settings.DEBUG:
+            print(f"Debug - Confirm view loaded successfully for item: {item.name}, date: {date_obj}")
+        
+    except (ValueError, RentalItem.DoesNotExist) as e:
+        logger.error(f"Reservation confirm validation error: {str(e)}")
+        messages.error(request, f"予約データに問題があります。エラー: {str(e)}")
+        return redirect('reserve_form')
+    
+    context = {
+        'reservation_data': reservation_data,
+        'date_obj': date_obj,
+        'item': item,
+    }
+    return render(request, 'reservations/confirm.html', context)
+
+def reservation_complete(request):
+    """予約完了処理"""
+    if request.method != 'POST':
+        return redirect('reserve_form')
+    
+    # セッションから予約データを取得
+    reservation_data = request.session.get('pending_reservation')
+    
+    if not reservation_data:
+        messages.error(request, "予約データが見つかりません。")
+        return redirect('reserve_form')
+    
+    try:
+        # 日付文字列を日付オブジェクトに変換
+        date_obj = datetime.strptime(reservation_data['date'], "%Y-%m-%d").date()
+        item = get_object_or_404(RentalItem, id=reservation_data['item_id'], is_active=True)
+        
+        # トランザクション処理で同時予約競合を回避
+        with transaction.atomic():
+            # 在庫ベースの予約可能性の最終チェック（ロック付き）
+            confirmed_reservations_count = Reservation.objects.select_for_update().filter(
+                date=date_obj,
+                item=item,
+                status__in=['adjusting', 'completed']
+            ).count()
+            
+            if confirmed_reservations_count >= item.total_stock:
+                messages.error(request, "申し訳ございませんが、この日時の在庫がありません。別の日付をお選びください。")
+                return redirect('reserve_form')
+            
+            # 予約を作成
+            reservation = Reservation.objects.create(
+                name=reservation_data['name'], 
+                phone=reservation_data['phone'],
+                email=reservation_data['email'],
+                date=date_obj, 
+                item=item,
+                notes=reservation_data['notes'],
+                status='adjusting'  # 明示的に調整中で作成
+            )
+            
+            # セッションから予約データを削除
+            if 'pending_reservation' in request.session:
+                del request.session['pending_reservation']
+                request.session.modified = True
+            
+            return render(request, "reservations/thanks.html", {
+                "reservation": reservation
+            })
+            
+    except (ValueError, ValidationError, IntegrityError) as e:
+        messages.error(request, f"予約処理中にエラーが発生しました: {str(e)}")
+        return redirect('reserve_form')
+    except Exception as e:
+        messages.error(request, "予約処理中にエラーが発生しました。")
+        logger.error(f"Reservation creation error: {str(e)}")
+        return redirect('reserve_form')
 
 def reservations_list(request):
     """予約一覧表示（予約者向け）"""

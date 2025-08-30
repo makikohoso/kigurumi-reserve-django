@@ -149,11 +149,17 @@ MAX_IMAGE_SIZE = (800, 600)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
+# Session Configuration
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 3600  # 1時間でセッション期限切れ
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True  # 毎リクエストでセッションを保存
+
 # Business Rules Configuration
 RESERVATION_SETTINGS = {
     'MAX_ADVANCE_DAYS': 90,  # 最大90日前まで予約可能
     'MIN_ADVANCE_DAYS': 5,  # 最低5日前まで予約可能
-    'MAX_RESERVATIONS_PER_USER_PER_DAY': 3,  # 1日あたり最大3件の予約
+    'MAX_RESERVATIONS_PER_USER_PER_DAY': 10,  # 1日あたり最大10件の予約（テスト用）
     'RESERVATION_TIMEOUT_MINUTES': 10,  # 予約プロセスのタイムアウト
     'ENABLE_RATE_LIMITING': False,  # 一時的に無効化
     'RATE_LIMIT_PER_HOUR': 10,  # 1時間あたり最大10件の予約試行

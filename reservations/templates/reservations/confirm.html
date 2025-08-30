@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>予約確認 - きぐるみレンタル予約システム</title>
+    
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS の CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      document.addEventListener("dblclick", function(e){ e.preventDefault();}, { passive: false });
+    </script>
+</head>
+<body class="bg-zinc-100 text-zinc-600">
+    <!-- アプリ本体 -->
+    <div id="app" class="container mx-auto px-4 py-8 max-w-5xl">
+        <div class="flex justify-between items-center mb-4 md:mb-8">
+            <h1 class="text-xl md:text-3xl sm:text-2xl font-bold">予約システム</h1>
+            <div class="flex gap-2">
+                <a href="/reservations/" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-white bg-cyan-500 hover:bg-cyan-600 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                    </svg>
+                    予約状況確認
+                </a>
+                <a href="/admin/" class="text-sm text-cyan-600 hover:underline px-3 py-2">管理画面</a>
+            </div>
+        </div>
+        
+        <!-- 確認内容表示部分 -->
+        <div class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] py-6 px-4 md:py-6 md:px-6">
+            
+            <!-- 予約基本情報 -->
+            <div class="mb-8">
+                <h2 class="text-xl sm:text-2xl font-bold text-cyan-500 mb-4 sm:mb-5 md:mb-6">予約内容</h2>
+                
+                <div class="bg-gray-50 rounded-lg p-4 md:p-6 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-start gap-6">
+                        <!-- 予約日とレンタル物品 -->
+                        <div class="flex-1 space-y-6">
+                            <div>
+                                <h3 class="font-semibold text-zinc-600 mb-2 text-sm md:text-base">予約日：</h3>
+                                <p class="text-lg font-bold text-zinc-600">{{ date_obj|date:"Y年m月d日" }} ({{ date_obj|date:"l" }})</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-semibold text-zinc-600 mb-2 text-sm md:text-base">レンタル物品：</h3>
+                                <p class="text-lg font-bold text-zinc-600">{{ item.name }}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- 物品画像 -->
+                        <div class="flex-shrink-0">
+                            <h3 class="font-semibold text-zinc-600 mb-2 text-sm md:text-base">物品画像：</h3>
+                            {% if item.get_primary_image %}
+                                <img src="{{ item.get_primary_image.image.url }}" 
+                                     alt="{{ item.name }}" 
+                                     class="w-48 h-36 object-cover rounded-lg">
+                            {% else %}
+                                <div class="w-48 h-36 bg-white rounded-lg flex items-center justify-center border">
+                                    <span class="text-zinc-400 text-sm">画像なし</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 予約者情報 -->
+            <div class="mb-8">
+                <h2 class="text-xl sm:text-2xl font-bold text-cyan-500 mb-4 sm:mb-5 md:mb-6">予約者情報</h2>
+                
+                <div class="bg-gray-50 rounded-lg p-4 md:p-6">
+                    <div class="space-y-3">
+                        <div class="flex flex-col md:flex-row md:items-center border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                            <span class="font-medium text-zinc-600 md:w-40 md:flex-shrink-0">お名前：</span>
+                            <span class="text-zinc-600 mt-1 md:mt-0">{{ reservation_data.name }} 様</span>
+                        </div>
+                        <div class="flex flex-col md:flex-row md:items-center border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                            <span class="font-medium text-zinc-600 md:w-40 md:flex-shrink-0">電話番号：</span>
+                            <span class="text-zinc-600 mt-1 md:mt-0">{{ reservation_data.phone }}</span>
+                        </div>
+                        <div class="flex flex-col md:flex-row md:items-center border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                            <span class="font-medium text-zinc-600 md:w-40 md:flex-shrink-0">メールアドレス：</span>
+                            <span class="text-zinc-600 mt-1 md:mt-0">{{ reservation_data.email }}</span>
+                        </div>
+                        {% if reservation_data.notes %}
+                        <div class="flex flex-col md:flex-row md:items-start border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                            <span class="font-medium text-zinc-600 md:w-40 md:flex-shrink-0">備考：</span>
+                            <span class="text-zinc-600 whitespace-pre-line mt-1 md:mt-0">{{ reservation_data.notes }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 注意事項 -->
+            <div class="mb-6 bg-yellow-50 rounded-lg p-4">
+                <h3 class="flex items-center font-semibold text-yellow-800 mb-2 text-sm md:text-base">
+                    <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    注意事項
+                </h3>
+                <ul class="text-sm text-yellow-700 space-y-1">
+                    <li>• 予約完了した時点では確定ではございません。予約完了メールを持って予約が確定いたします。予約状況確認ページから確認いただけます。</li>
+                    <li>• 予約のキャンセルは予約日の前日まで可能です。メールにてキャンセルのご連絡をお願いします。</li>
+                    <li>• 予約確認番号は大切に保管してください。</li>
+                </ul>
+            </div>
+            
+            <!-- ボタン群 -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/" 
+                   class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-zinc-600 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-center justify-center">
+                    戻って修正
+                </a>
+                
+                <form method="POST" action="{% url 'reservation_complete' %}">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            class="inline-flex items-center gap-2 bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-8 md:px-12 text-sm md:text-base rounded-lg transition shadow-sm">
+                        予約する
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

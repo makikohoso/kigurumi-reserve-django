@@ -6,9 +6,23 @@
     
     <meta name="robots" content="noindex, nofollow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Favicon -->
+    {% load static %}
+    <link rel="icon" type="image/png" href="{% static 'admin/img/favicon.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'admin/img/favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'admin/img/icon.png' %}">
 
     <!-- Tailwind CSS の CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CSS production warning を無効化
+        tailwind.config = {
+            corePlugins: {
+                preflight: true,
+            }
+        }
+    </script>
     
     <!-- Flatpickr CSS and JS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -214,6 +228,17 @@
       .text-holiday {
         color: #e49595;
       }
+      
+      /* ボタンのアウトライン除去 */
+      button, input[type="button"], input[type="submit"], input[type="reset"] {
+        outline: none !important;
+        border: none !important;
+      }
+      
+      button:focus, input[type="button"]:focus, input[type="submit"]:focus, input[type="reset"]:focus {
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.5) !important;
+      }
     </style>
 </head>
 <body class="bg-zinc-100 text-zinc-600">
@@ -338,8 +363,9 @@
                 </div>
                 
                 <div>
-                    <label for="date" class="block font-semibold mb-2 text-sm md:text-base">予約日 *</label>
+                    <label for="date" class="block font-semibold mb-2 text-sm md:text-base">予約希望日 *</label>
                     <input type="date" id="date" name="date" value="{{ form_data.date|default:'' }}" required class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white h-12 md:h-auto">
+                    <p class="text-xs text-gray-500 mt-2">※ 5日前からの予約が可能です</p>
                 </div>
                 
                 <div>
@@ -756,15 +782,22 @@
                             statusColor = 'text-red-600';
                         } else if (day.status_text === '休') {
                             statusColor = 'text-holiday';
+                        } else if (day.status_text === '-') {
+                            statusColor = 'text-gray-400';
                         }
                     }
                     
-                    // クリック可否判定：◯と△はクリック可能、✕と休はクリック不可
+                    // クリック可否判定：◯と△はクリック可能、✕と休と-はクリック不可
                     const isClickable = !isInactive && (day.status_text === '◯' || day.status_text === '△');
                     
                     const hoverClass = isClickable ? 'hover:bg-cyan-50' : '';
                     const clickable = isClickable ? `onclick="selectDate('${day.date}')"` : '';
                     const cursor = isClickable ? 'cursor-pointer' : 'cursor-not-allowed';
+                    
+                    // 選択できない日付の背景色（✕、休、-）
+                    // ハイフンの場合は当月以外でも背景色を適用
+                    const isUnselectable = (day.status_text === '✕' || day.status_text === '休') && !isInactive || day.status_text === '-';
+                    const backgroundClass = isUnselectable ? 'bg-zinc-50' : '';
                     
                     
                     // 日付の色（日曜日：赤、土曜日：青、その他：グレー、ただし当月以外は薄く）
@@ -777,7 +810,7 @@
                         dayColor = 'text-cyan-700';
                     }
                     
-                    html += `<td class="day-cell border-l border-t p-1 sm:p-2 text-center min-h-[60px] sm:min-h-[70px] md:min-h-[80px] ${hoverClass} ${cursor}" ${clickable}>
+                    html += `<td class="day-cell border-l border-t p-1 sm:p-2 text-center min-h-[60px] sm:min-h-[70px] md:min-h-[80px] ${hoverClass} ${cursor} ${backgroundClass}" ${clickable}>
                         <div class="text-xs sm:text-sm md:text-base mb-1 ${dayColor}">${day.day}</div>
                         <div class="status-marker text-sm sm:text-base md:text-lg ${statusColor} transition-colors">
                             ${day.status_text}
@@ -852,8 +885,8 @@
                         // HTMLフィールドも確実に設定
                         document.getElementById('date').value = dateStr;
                         
-                        // 選択された日付をハイライト表示
-                        highlightSelectedDate(dateStr);
+                        // 選択された日付をハイライト表示（削除）
+                        // highlightSelectedDate(dateStr);
                         
                         // 予約フォームにスムーズスクロール
                         scrollToForm();
@@ -883,8 +916,8 @@
                     document.getElementById('date').value = dateStr;
                 });
                 
-                // 選択された日付をハイライト表示
-                highlightSelectedDate(dateStr);
+                // 選択された日付をハイライト表示（削除）
+                // highlightSelectedDate(dateStr);
                 
                 // 予約フォームにスムーズスクロール
                 scrollToForm();
@@ -947,26 +980,10 @@
             }
         });
         
-        // 選択した日付をハイライト表示する関数
-        function highlightSelectedDate(selectedDate) {
-            // 以前のハイライトを削除
-            const previousHighlighted = document.querySelectorAll('.selected-date');
-            previousHighlighted.forEach(element => {
-                element.classList.remove('selected-date', 'bg-yellow-200', 'border-2', 'border-yellow-400');
-            });
-            
-            // 新しい日付をハイライト
-            const allCells = document.querySelectorAll('.day-cell');
-            allCells.forEach(cell => {
-                const statusMarker = cell.querySelector('.status-marker');
-                if (statusMarker && statusMarker.getAttribute('onclick')) {
-                    const onclickValue = statusMarker.getAttribute('onclick');
-                    if (onclickValue.includes(selectedDate)) {
-                        cell.classList.add('selected-date', 'bg-yellow-200', 'border-2', 'border-yellow-400');
-                    }
-                }
-            });
-        }
+        // 選択した日付をハイライト表示する関数（削除）
+        // function highlightSelectedDate(selectedDate) {
+        //     // 機能を削除しました
+        // }
         
         // フォーム送信処理
         function handleFormSubmission() {

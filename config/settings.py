@@ -31,10 +31,6 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=lambda v: [s.strip() fo
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = ["https://reservation.mkk-8.work", "http://reservation.mkk-8.work"]
 
-# Basic Authentication settings
-BASIC_AUTH_ENABLED = config('BASIC_AUTH_ENABLED', default=False, cast=bool)
-BASIC_AUTH_USERNAME = config('BASIC_AUTH_USERNAME', default='')
-BASIC_AUTH_PASSWORD = config('BASIC_AUTH_PASSWORD', default='')
 
 
 # Application definition
@@ -58,7 +54,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'config.middleware.BasicAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

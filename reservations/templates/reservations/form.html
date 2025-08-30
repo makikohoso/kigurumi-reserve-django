@@ -430,8 +430,6 @@
             // data-large-url属性から大きな画像のURLを取得、なければ元のsrcを使用
             const largeImageSrc = imgElement.getAttribute('data-large-url') || imgElement.src;
             
-            console.log('Opening modal with image:', largeImageSrc); // デバッグ用
-            
             modalImg.src = largeImageSrc;
             modalImg.alt = imgElement.alt;
             caption.innerHTML = imgElement.alt || '画像詳細';
@@ -532,27 +530,27 @@
         
         // 簡素化されたドロップダウンエンハンス
         function enhanceDropdown() {
-            const select = document.getElementById('calendar-item');
-            const options = select.querySelectorAll('option[value!=""]');
-            
-            console.log('Enhancing dropdown with', options.length, 'options');
-            
-            // オプションに画像データを確認
-            options.forEach(option => {
-                const imageUrl = option.dataset.dropdownImage;
-                console.log('Option:', option.textContent, 'has image:', !!imageUrl, 'URL:', imageUrl);
-            });
-            
-            // 簡単なツールチップ表示を追加
-            select.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const imageUrl = selectedOption.dataset.dropdownImage;
-                
-                if (imageUrl) {
-                    console.log('Selected item has image:', imageUrl);
-                    showImagePreview(imageUrl, selectedOption.textContent);
+            try {
+                const select = document.getElementById('calendar-item');
+                if (!select) {
+                    console.warn('Calendar item select not found');
+                    return;
                 }
-            });
+                
+                const options = Array.from(select.options).filter(option => option.value !== "");
+                
+                // 簡単なツールチップ表示を追加
+                select.addEventListener('change', function() {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const imageUrl = selectedOption.dataset.dropdownImage;
+                    
+                    if (imageUrl) {
+                        showImagePreview(imageUrl, selectedOption.textContent);
+                    }
+                });
+            } catch (error) {
+                console.warn('Error enhancing dropdown:', error);
+            }
         }
         
         function showImagePreview(imageUrl, itemName) {

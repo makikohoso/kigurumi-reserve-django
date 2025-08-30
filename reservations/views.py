@@ -31,7 +31,7 @@ def validate_reservation_business_rules(date_obj, item, user_ip=None, phone=None
         today_reservations = Reservation.objects.filter(
             phone=phone,
             created_at__date=now.date(),
-            status='confirmed'
+            status__in=['adjusting', 'completed']
         ).count()
         
         # デバッグ情報（開発環境のみ）
@@ -95,7 +95,7 @@ def check_date_availability_legacy(target_date, item, is_current_month=True, is_
     if Reservation.objects.filter(
         date=target_date, 
         item=item, 
-        status='confirmed'
+        status__in=['adjusting', 'confirmed']
     ).exists():
         return False
     
@@ -182,7 +182,7 @@ def reserve_form(request):
                             confirmed_reservations_count = Reservation.objects.select_for_update().filter(
                                 date=date_obj,
                                 item=item,
-                                status='confirmed'
+                                status__in=['adjusting', 'completed']
                             ).count()
                             
                             if confirmed_reservations_count >= item.total_stock:
@@ -200,7 +200,8 @@ def reserve_form(request):
                                 email=email,
                                 date=date_obj, 
                                 item=item,
-                                notes=notes
+                                notes=notes,
+                                status='adjusting'  # 明示的に調整中で作成
                             )
                             
                             # CalendarStatus管理は在庫ベース管理に移行により不要
@@ -340,9 +341,12 @@ def get_item_images(request, item_id):
 
 def reservations_list(request):
     """予約一覧表示（予約者向け）"""
-    # 今日以降の予約を日付順で取得（名前は含めない）
+    # 今日以降の予約を日付順で取得（キャンセル以外のみ）
     today = date.today()
-    reservations = Reservation.objects.select_related('item').filter(date__gte=today).order_by('date', 'item__name')
+    reservations = Reservation.objects.select_related('item').filter(
+        date__gte=today,
+        status__in=['adjusting', 'completed']  # キャンセル以外
+    ).order_by('date', 'item__name')
     
     context = {
         'reservations': reservations
@@ -458,7 +462,7 @@ def check_availability(request):
             
             reason = None
             if not available:
-                if Reservation.objects.filter(date=target_date, item=item, status='confirmed').exists():
+                if Reservation.objects.filter(date=target_date, item=item, status__in=['adjusting', 'confirmed']).exists():
                     reason = 'already_reserved'
                 elif is_past_date:
                     reason = 'past_date'
@@ -507,7 +511,7 @@ def get_merged_calendar_data(request):
             Reservation.objects.filter(
                 date__range=(start_date, end_date),
                 item_id__in=active_items,
-                status='confirmed'
+                status__in=['adjusting', 'completed']
             ).values_list('date', 'item_id')
         )
         
@@ -619,7 +623,7 @@ def get_available_items_for_date(request):
         reserved_item_ids = set(
             Reservation.objects.filter(
                 date=target_date,
-                status='confirmed'
+                status__in=['adjusting', 'completed']
             ).values_list('item_id', flat=True)
         )
         

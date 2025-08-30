@@ -16,7 +16,7 @@ class RentalItem(models.Model):
         """指定日の利用可能在庫数を取得"""
         reserved_count = self.reservation_set.filter(
             date=target_date,
-            status__in=['confirmed', 'pending']
+            status__in=['adjusting', 'completed']
         ).count()
         return max(0, self.total_stock - reserved_count)
     
@@ -206,9 +206,9 @@ class CalendarStatus(models.Model):
 
 class Reservation(models.Model):
     RESERVATION_STATUS_CHOICES = [
-        ('confirmed', '確定'),
+        ('adjusting', '調整中'),
+        ('completed', '予約完了'),
         ('cancelled', 'キャンセル'),
-        ('completed', '利用完了'),
     ]
     
     # 基本情報
@@ -252,7 +252,7 @@ class Reservation(models.Model):
     status = models.CharField(
         max_length=20,
         choices=RESERVATION_STATUS_CHOICES,
-        default='confirmed',
+        default='adjusting',
         verbose_name="予約ステータス"
     )
     
@@ -296,7 +296,7 @@ class Reservation(models.Model):
     def can_cancel(self):
         """キャンセル可能かチェック（予約日の前日まで）"""
         from django.utils import timezone
-        if self.status != 'confirmed':
+        if self.status not in ['adjusting', 'completed']:
             return False
         return self.date > timezone.now().date()
 

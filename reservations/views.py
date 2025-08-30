@@ -1,11 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from .models import Reservation, RentalItem, CalendarStatus
+from .email_utils import send_reservation_emails
 from datetime import datetime, date, timedelta
 import json
 import time
@@ -394,6 +395,14 @@ def reservation_complete(request):
                 notes=reservation_data['notes'],
                 status='adjusting'  # 明示的に調整中で作成
             )
+            
+            # メール送信（エラーが起きても予約自体は成功として扱う）
+            try:
+                send_reservation_emails(reservation)
+                logger.info(f"予約完了メール送信成功: {reservation.confirmation_number}")
+            except Exception as e:
+                logger.error(f"メール送信失敗: {str(e)} - 予約番号: {reservation.confirmation_number}")
+                # メール送信失敗してもユーザーには成功画面を表示
             
             # セッションから予約データを削除
             if 'pending_reservation' in request.session:
@@ -842,3 +851,19 @@ def cancel_reservation(request, confirmation_number):
         return render(request, "reservations/cancel_confirm.html", {
             'error_message': "指定された予約は見つかりませんでした"
         })
+
+def test_email(request):
+    """テスト用：最新の予約でメール送信をテスト"""
+    try:
+        # 最新の予約を取得
+        latest_reservation = Reservation.objects.latest('created_at')
+        
+        # メール送信をテスト
+        send_reservation_emails(latest_reservation)
+        
+        return HttpResponse(f"テストメール送信完了: 予約番号 {latest_reservation.confirmation_number}")
+        
+    except Reservation.DoesNotExist:
+        return HttpResponse("予約データが見つかりません")
+    except Exception as e:
+        return HttpResponse(f"メール送信エラー: {str(e)}")

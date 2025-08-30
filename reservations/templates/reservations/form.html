@@ -309,22 +309,12 @@
         <!-- 予約フォーム部分 -->
         <div id="reservation-form-section" class="bg-white rounded-lg shadow-[0_0_5px_0_rgba(0,0,0,0.05)] py-6 px-4 md:py-6 md:px-6">
             <h2 class="text-xl sm:text-2xl font-bold text-center text-cyan-500 mb-4 sm:mb-5 md:mb-6">予約フォーム</h2>
-            {% if errors %}
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                    <ul class="list-disc list-inside">
-                        {% for error in errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
             
             <form method="post" class="space-y-5 sm:space-y-6">
                 {% csrf_token %}
                 
                 {% if errors %}
                     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                        <h3 class="font-semibold text-red-800 mb-2">エラーが発生しました</h3>
                         <ul class="text-sm text-red-700 space-y-1">
                             {% for error in errors %}
                                 <li>• {{ error }}</li>

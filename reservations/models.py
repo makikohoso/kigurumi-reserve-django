@@ -272,6 +272,11 @@ class Reservation(models.Model):
             models.Index(fields=['confirmation_number']),
             models.Index(fields=['date', 'item']),
             models.Index(fields=['status']),
+            # パフォーマンス向上のための追加インデックス
+            models.Index(fields=['date', 'item', 'status']),  # 在庫計算用複合インデックス
+            models.Index(fields=['created_at', 'status']),    # 管理画面フィルタ用
+            models.Index(fields=['phone', 'created_at']),     # レート制限用
+            models.Index(fields=['email', 'created_at']),     # メール検索用
         ]
 
     def save(self, *args, **kwargs):

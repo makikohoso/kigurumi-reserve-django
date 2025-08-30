@@ -12,11 +12,22 @@ def send_reservation_emails(reservation):
     - 管理者にメール送信
     """
     try:
+        from .models import EmailSettings, AdminEmail
+        
+        # データベースから設定を取得
+        email_settings = EmailSettings.get_current_settings()
+        
         # 予約者へのメール送信
-        send_customer_email(reservation)
+        if email_settings.send_customer_notification:
+            send_customer_email(reservation, email_settings)
         
         # 管理者へのメール送信
-        send_admin_email(reservation)
+        if email_settings.send_admin_notification:
+            admin_emails = list(AdminEmail.get_active_emails())
+            if admin_emails:
+                send_admin_email(reservation, admin_emails, email_settings)
+            else:
+                logger.warning("有効な通知先メールアドレスが設定されていません")
         
         logger.info(f"予約メール送信完了: 予約番号 {reservation.confirmation_number}")
         
@@ -25,15 +36,15 @@ def send_reservation_emails(reservation):
         # メール送信失敗しても予約自体は成功として扱う
 
 
-def send_customer_email(reservation):
+def send_customer_email(reservation, email_settings):
     """予約者へのメール送信"""
-    subject = f"【予約完了】きぐるみレンタル予約 - {reservation.confirmation_number}"
+    subject = f"【予約完了】{email_settings.from_name} - {reservation.confirmation_number}"
     
     # テキストメール内容
     message = f"""
 {reservation.name} 様
 
-きぐるみレンタル予約システムをご利用いただき、ありがとうございます。
+{email_settings.from_name}をご利用いただき、ありがとうございます。
 予約が完了いたしました。
 
 ■ 予約内容
@@ -53,21 +64,22 @@ def send_customer_email(reservation):
 
 何かご不明な点がございましたら、お気軽にお問い合わせください。
 
-きぐるみレンタル予約システム
+{email_settings.from_name}
 """
 
     # メール送信
     send_mail(
         subject=subject,
         message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=email_settings.get_from_email(),
         recipient_list=[reservation.email],
         fail_silently=False,
     )
 
 
-def send_admin_email(reservation):
-    """管理者へのメール送信"""
+def send_admin_email(reservation, admin_emails, email_settings):
+    """通知先へのメール送信（複数の通知先に送信）"""
+    logger.info(f"通知先メール送信開始: ADMIN_EMAILS = {admin_emails}")
     subject = f"【新規予約】{reservation.item.name} - {reservation.date.strftime('%m/%d')} - {reservation.name}様"
     
     # テキストメール内容
@@ -93,10 +105,12 @@ def send_admin_email(reservation):
 """
 
     # メール送信
+    logger.info(f"通知先メール送信実行: recipient_list={admin_emails}")
     send_mail(
         subject=subject,
         message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[settings.ADMIN_EMAIL],
+        from_email=email_settings.get_from_email(),
+        recipient_list=admin_emails,
         fail_silently=False,
     )
+    logger.info(f"通知先メール送信完了: {reservation.confirmation_number}, 送信先: {len(admin_emails)}件")

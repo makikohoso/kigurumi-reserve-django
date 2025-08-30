@@ -156,17 +156,18 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True  # 毎リクエストでセッションを保存
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # 開発環境用（コンソール出力）
-# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # 本番環境用
-EMAIL_HOST = 'smtp.gmail.com'  # Gmail SMTP
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # 開発環境用（コンソール出力）
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # 本番環境用
+EMAIL_HOST = 'smtp.lolipop.jp'  # ロリポップ SMTP
 EMAIL_PORT = 587
+EMAIL_USE_SSL = False
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = ''  # 設定が必要
-EMAIL_HOST_PASSWORD = ''  # 設定が必要
-DEFAULT_FROM_EMAIL = 'きぐるみレンタル予約システム <noreply@example.com>'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = '予約システム <noreply@mkk-8.work>'
 
 # Email Settings
-ADMIN_EMAIL = 'admin@example.com'  # 管理者メールアドレス（要設定）
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@example.com')
 
 # Business Rules Configuration
 RESERVATION_SETTINGS = {

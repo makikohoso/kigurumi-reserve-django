@@ -4,7 +4,7 @@ from django.urls import path
 from django.http import JsonResponse
 from django.db import transaction
 from django.utils.html import format_html
-from .models import Reservation, RentalItem, CalendarStatus, RentalItemImage
+from .models import Reservation, RentalItem, CalendarStatus, RentalItemImage, EmailSettings, AdminEmail
 from datetime import date, timedelta
 import json
 
@@ -218,3 +218,58 @@ class RentalItemImageAdmin(admin.ModelAdmin):
             )
         return "画像なし"
     image_preview.short_description = "プレビュー"
+
+
+class AdminEmailInline(admin.TabularInline):
+    """通知先メールアドレスのインライン"""
+    model = AdminEmail
+    extra = 1
+    fields = ('name', 'email', 'is_active')
+    verbose_name = "通知先"
+    verbose_name_plural = "通知先"
+
+
+@admin.register(EmailSettings)
+class EmailSettingsAdmin(admin.ModelAdmin):
+    """メール設定の管理画面"""
+    inlines = [AdminEmailInline]
+    
+    fieldsets = (
+        ('送信者設定', {
+            'fields': ('from_name', 'from_email'),
+            'description': 'メールの送信者として表示される情報を設定します。'
+        }),
+        ('通知設定', {
+            'fields': ('send_customer_notification', 'send_admin_notification'),
+            'description': 'メール通知の有効/無効を設定します。'
+        }),
+    )
+    
+    def changelist_view(self, request, extra_context=None):
+        """リスト画面を直接設定画面にリダイレクト"""
+        from django.shortcuts import redirect
+        from django.urls import reverse
+        
+        # 設定が存在しない場合は作成
+        settings_obj = EmailSettings.get_current_settings()
+        
+        # 設定画面に直接リダイレクト
+        return redirect(reverse('admin:reservations_emailsettings_change', args=[settings_obj.pk]))
+    
+    def has_add_permission(self, request):
+        """追加権限をチェック（1件のみ許可）"""
+        return EmailSettings.objects.count() < 1
+    
+    def has_delete_permission(self, request, obj=None):
+        """削除を禁止（設定は必ず1件残す）"""
+        return False
+
+
+# AdminEmailは管理画面から非表示（インラインでのみ管理）
+class AdminEmailAdmin(admin.ModelAdmin):
+    """通知先メールアドレスの管理画面（非表示）"""
+    list_display = ('name', 'email', 'is_active', 'updated_at')
+    list_filter = ('is_active', 'created_at')
+    search_fields = ('name', 'email')
+    list_editable = ('is_active',)
+    ordering = ('name',)

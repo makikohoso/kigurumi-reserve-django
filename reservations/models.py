@@ -312,3 +312,98 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"[{self.confirmation_number}] {self.name} - {self.item.name} - {self.date}"
+
+
+class EmailSettings(models.Model):
+    """メール通知設定（シングルトン）"""
+    # 送信者設定
+    from_name = models.CharField(
+        max_length=100,
+        default="予約システム",
+        verbose_name="送信者名",
+        help_text="メールの送信者として表示される名前"
+    )
+    from_email = models.EmailField(
+        default="noreply@example.com",
+        verbose_name="送信者メールアドレス",
+        help_text="メールの送信者として使用するメールアドレス"
+    )
+    
+    # 通知設定
+    send_customer_notification = models.BooleanField(
+        default=True,
+        verbose_name="顧客への通知を送信",
+        help_text="予約者に確認メールを送信するかどうか"
+    )
+    send_admin_notification = models.BooleanField(
+        default=True,
+        verbose_name="管理者への通知を送信",
+        help_text="管理者に予約通知メールを送信するかどうか"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "メール設定"
+        verbose_name_plural = "メール設定"
+    
+    def __str__(self):
+        return "メール通知設定"
+    
+    def get_from_email(self):
+        """送信者メールアドレスをフォーマットして取得"""
+        return f"{self.from_name} <{self.from_email}>"
+    
+    @classmethod
+    def get_current_settings(cls):
+        """現在の設定を取得（なければデフォルト作成）"""
+        settings_obj, created = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'from_name': '予約システム',
+                'from_email': 'noreply@mkk-8.work',
+                'send_customer_notification': True,
+                'send_admin_notification': True,
+            }
+        )
+        return settings_obj
+
+
+class AdminEmail(models.Model):
+    """通知先メールアドレス"""
+    email_settings = models.ForeignKey(
+        EmailSettings,
+        on_delete=models.CASCADE,
+        related_name='admin_emails',
+        verbose_name="メール設定",
+        default=1  # デフォルトでEmailSettings のID=1を参照
+    )
+    email = models.EmailField(
+        verbose_name="メールアドレス"
+    )
+    name = models.CharField(
+        max_length=100,
+        verbose_name="名前",
+        help_text="通知先の名前（メール識別用）"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="有効",
+        help_text="このメールアドレスに通知を送信するかどうか"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "通知先"
+        verbose_name_plural = "通知先"
+        ordering = ['name']
+        unique_together = ['email_settings', 'email']  # 同じ設定内でのメール重複を防ぐ
+    
+    def __str__(self):
+        return f"{self.name} <{self.email}>"
+    
+    @classmethod
+    def get_active_emails(cls):
+        """有効な通知先メールアドレス一覧を取得"""
+        return cls.objects.filter(is_active=True).values_list('email', flat=True)

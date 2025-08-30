@@ -45,7 +45,7 @@ Django で構築された予約管理システムです。
 
 ### 1. リポジトリのクローン
 ```bash
-git clone <repository-url>
+git clone https://github.com/makikohoso/kigurumi-reserve-django.git
 cd kigurumi-reserve-django
 ```
 

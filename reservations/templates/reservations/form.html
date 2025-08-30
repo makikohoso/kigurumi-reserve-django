@@ -539,39 +539,23 @@
                 
                 const options = Array.from(select.options).filter(option => option.value !== "");
                 
-                // 簡単なツールチップ表示を追加
-                select.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    const imageUrl = selectedOption.dataset.dropdownImage;
-                    
-                    if (imageUrl) {
-                        showImagePreview(imageUrl, selectedOption.textContent);
-                    }
-                });
+                // 簡単なツールチップ表示を追加（無効化）
+                // select.addEventListener('change', function() {
+                //     const selectedOption = this.options[this.selectedIndex];
+                //     const imageUrl = selectedOption.dataset.dropdownImage;
+                //     
+                //     if (imageUrl) {
+                //         showImagePreview(imageUrl, selectedOption.textContent);
+                //     }
+                // });
             } catch (error) {
                 console.warn('Error enhancing dropdown:', error);
             }
         }
         
-        function showImagePreview(imageUrl, itemName) {
-            // 既存のプレビューを削除
-            const existingPreview = document.getElementById('dropdown-preview');
-            if (existingPreview) {
-                existingPreview.remove();
-            }
-            
-            // 新しいプレビューを作成
-            const preview = document.createElement('div');
-            preview.id = 'dropdown-preview';
-            preview.className = 'mt-2 p-2 bg-blue-50 rounded flex items-center gap-3';
-            preview.innerHTML = `
-                <img src="${imageUrl}" alt="${itemName}" class="w-12 h-12 object-cover rounded">
-                <span class="text-sm font-medium">${itemName}を選択中</span>
-            `;
-            
-            const selectContainer = document.getElementById('calendar-item').parentElement;
-            selectContainer.appendChild(preview);
-        }
+        // function showImagePreview(imageUrl, itemName) {
+        //     // 機能を無効化
+        // }
         
         // カレンダー選択時の画像表示関数
         function showItemImageForCalendar(selectedOption) {
@@ -1003,6 +987,12 @@
 
         // ページ読み込み時に初期カレンダーを表示・画像初期化
         document.addEventListener('DOMContentLoaded', function() {
+            // 既存のプレビューを削除
+            const existingPreview = document.getElementById('dropdown-preview');
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+            
             loadMergedCalendar();
             enhanceDropdown();
             handleFormSubmission(); // フォーム送信処理を初期化

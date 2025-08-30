@@ -6,7 +6,7 @@ import uuid
 import os
 
 class RentalItem(models.Model):
-    """レンタル物品（きぐるみの種類）"""
+    """レンタル物品"""
     name = models.CharField(max_length=100, unique=True)  # レンタル物品名
     is_active = models.BooleanField(default=True)  # 利用可能かどうか
     total_stock = models.PositiveIntegerField(default=1, verbose_name="総在庫数")  # 総在庫数

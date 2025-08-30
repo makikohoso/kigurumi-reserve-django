@@ -3,7 +3,8 @@ from .views import (
     reserve_form, reservations_list, get_calendar_data_for_item, 
     check_availability, get_disabled_dates, reservation_lookup, 
     cancel_reservation, get_merged_calendar_data, get_available_items_for_date,
-    get_item_images, reservation_confirm, reservation_complete, test_email
+    get_item_images, reservation_confirm, reservation_complete, test_email,
+    privacy_policy, terms_of_service
 )
 
 urlpatterns = [
@@ -20,4 +21,6 @@ urlpatterns = [
     path("cancel/<str:confirmation_number>/", cancel_reservation, name="cancel_reservation"),
     path("item-images/<int:item_id>/", get_item_images, name="item_images"),
     path("test-email/", test_email, name="test_email"),
+    path("privacy/", privacy_policy, name="privacy_policy"),
+    path("terms/", terms_of_service, name="terms_of_service"),
 ]

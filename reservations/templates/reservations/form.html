@@ -362,7 +362,23 @@
                     <textarea id="notes" name="notes" class="w-full p-2 sm:p-3 text-sm md:text-base border rounded focus:outline-none focus:ring-2 focus:ring-cyan-500" rows="3" placeholder="特記事項があれば記入してください">{{ form_data.notes|default:'' }}</textarea>
                 </div>
                 
-                <button type="submit" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">確認する</button>
+                <!-- 利用規約・プライバシーポリシー同意 -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-start">
+                        <input type="checkbox" id="agree_terms" name="agree_terms" required class="mt-1 mr-3 text-cyan-500 focus:ring-cyan-500">
+                        <label for="agree_terms" class="text-sm text-gray-700 leading-relaxed">
+                            <a href="{% url 'terms_of_service' %}" target="_blank" class="text-cyan-600 hover:text-cyan-800 underline">利用規約</a>
+                            および
+                            <a href="{% url 'privacy_policy' %}" target="_blank" class="text-cyan-600 hover:text-cyan-800 underline">プライバシーポリシー</a>
+                            に同意します *
+                        </label>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        ご予約にあたり、個人情報の収集・利用について同意が必要です。詳細は上記リンクをご確認ください。
+                    </p>
+                </div>
+                
+                <button type="submit" id="submit-button" class="block w-full md:max-w-xs mx-auto bg-cyan-500 hover:bg-cyan-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 sm:py-3 md:py-4 px-3 sm:px-4 md:px-10 text-sm md:text-base rounded transition mt-4 sm:mt-5 md:mt-6">確認する</button>
                 
                 <div id="message" class="mt-4 text-center hidden text-sm md:text-base"></div>
             </form>

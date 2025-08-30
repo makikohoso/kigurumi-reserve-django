@@ -1,0 +1,89 @@
+{% extends "reservations/base.html" %}
+
+{% block title %}利用規約 - 予約システム{% endblock %}
+
+{% block extrahead %}
+<style>
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 fade-in">
+        <!-- ヘッダー -->
+        <div class="text-center mb-4 md:mb-8">
+            <h1 class="text-xl md:text-3xl sm:text-2xl font-bold mb-2 sm:mb-3">利用規約</h1>
+            <p class="text-sm sm:text-base text-gray-600">サービス利用時のルール</p>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <div class="max-w-4xl mx-auto">
+            <div class="bg-white shadow-[0_0_5px_0_rgba(0,0,0,0.05)] rounded-lg p-6 sm:p-8 md:p-10">
+                <p class="text-xs sm:text-sm text-gray-500 mb-6 sm:mb-8">最終更新日：2025年8月30日</p>
+                
+                <div class="space-y-6 sm:space-y-8">
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第1条（適用）</h2>
+                        <p class="text-sm sm:text-base mb-4">本利用規約は、本サービスを利用するすべてのユーザーに適用されます。</p>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第2条（サービス内容）</h2>
+                        <p class="text-sm sm:text-base mb-4">本サービスは、物品のレンタルの予約・管理を行うサービスです。</p>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第3条（予約・キャンセル）</h2>
+                        <ul class="list-disc list-inside text-sm sm:text-base mb-4 space-y-1 sm:space-y-2 pl-4">
+                            <li>予約は先着順で受け付けます</li>
+                            <li>キャンセルは利用日の前日までに行ってください</li>
+                            <li>無断キャンセルが続く場合、利用を制限する場合があります</li>
+                        </ul>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第4条（禁止事項）</h2>
+                        <p class="text-sm sm:text-base mb-4">以下の行為を禁止します：</p>
+                        <ul class="list-disc list-inside text-sm sm:text-base mb-4 space-y-1 sm:space-y-2 pl-4">
+                            <li>虚偽の情報での予約</li>
+                            <li>商用利用・営利目的での利用</li>
+                            <li>システムの不正利用</li>
+                            <li>他のユーザーへの迷惑行為</li>
+                            <li>著作権侵害・肖像権侵害行為</li>
+                        </ul>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第5条（免責事項）</h2>
+                        <p class="text-sm sm:text-base mb-4">当社は、本サービスの利用によって生じた損害について、法令に定めのある場合を除き、一切の責任を負いません。</p>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第6条（規約の変更）</h2>
+                        <p class="text-sm sm:text-base mb-4">本規約は事前の予告なく変更される場合があります。変更後の利用をもって同意したものとみなします。</p>
+                    </section>
+                    
+                    <section>
+                        <h2 class="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 border-l-4 border-cyan-500 pl-3">第7条（準拠法・管轄裁判所）</h2>
+                        <p class="text-sm sm:text-base mb-4">本規約は日本法に準拠し、札幌地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+                    </section>
+                </div>
+                
+                <!-- 戻るボタン -->
+                <div class="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-gray-200 text-center">
+                    <a href="{% url 'reserve_form' %}" class="inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-3 px-6 sm:px-8 rounded-lg transition-colors duration-200 text-sm sm:text-base">
+                        予約フォームに戻る
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+{% endblock %}

@@ -852,6 +852,14 @@ def cancel_reservation(request, confirmation_number):
             'error_message': "指定された予約は見つかりませんでした"
         })
 
+def privacy_policy(request):
+    """プライバシーポリシー表示"""
+    return render(request, 'reservations/privacy_policy.html')
+
+def terms_of_service(request):
+    """利用規約表示"""
+    return render(request, 'reservations/terms.html')
+
 def test_email(request):
     """テスト用：最新の予約でメール送信をテスト"""
     try:

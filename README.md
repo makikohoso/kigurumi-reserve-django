@@ -17,9 +17,10 @@ Django で構築された予約管理システムです。
 
 ### 🖼️ 画像管理
 - 複数画像のアップロード・管理
-- 自動サムネイル生成（150x150, 48x48）
+- 自動サムネイル生成（150x150, 160x160）
 - メイン画像の設定
 - レスポンシブ対応の画像表示
+- Retina対応の高解像度表示
 
 ### 🔐 セキュリティ機能
 - 包括的なログ・監査システム
@@ -73,6 +74,42 @@ cp .env.example .env
 # - ADMIN_EMAIL: 管理者メールアドレス
 ```
 
+#### 詳細なメール設定
+
+**ロリポップメール使用の場合:**
+```bash
+# .env ファイル設定例
+EMAIL_HOST_USER=noreply@yourdomain.com
+EMAIL_HOST_PASSWORD=your_email_password
+ADMIN_EMAIL=admin@yourdomain.com
+
+# settings.py では以下が設定済み
+EMAIL_HOST=smtp.lolipop.jp
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+```
+
+**Gmail使用の場合:**
+```bash
+# .env ファイル設定例
+EMAIL_HOST_USER=your_gmail@gmail.com
+EMAIL_HOST_PASSWORD=your_app_password  # Googleアプリパスワード
+ADMIN_EMAIL=admin@gmail.com
+
+# settings.py で以下を変更
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+```
+
+**メール送信のテスト:**
+```bash
+# Django shellでメール送信テスト
+python manage.py shell
+>>> from django.core.mail import send_mail
+>>> send_mail('テスト', 'メール送信テストです', 'noreply@yourdomain.com', ['test@example.com'])
+```
+
 ### 5. データベースのセットアップ
 ```bash
 # マイグレーションの実行
@@ -92,6 +129,36 @@ mkdir -p logs
 
 # サムネイル生成（既存画像がある場合）
 python manage.py generate_dropdown_thumbnails
+```
+
+#### デモデータの使用方法
+
+**デモデータの投入:**
+```bash
+# demo_data.jsonからデモデータを読み込み
+python manage.py loaddata demo_data.json
+```
+
+**デモデータの内容:**
+- レンタル物品A〜E（5件の物品データ）
+- 各物品に画像データが含まれています
+- 予約状況確認のサンプルデータとして活用
+
+**カスタムデモデータの作成:**
+```bash
+# 現在のデータをエクスポート
+python manage.py dumpdata reservations.RentalItem reservations.RentalItemImage --indent 2 > my_demo_data.json
+
+# カスタムデータの読み込み
+python manage.py loaddata my_demo_data.json
+```
+
+**デモデータのリセット:**
+```bash
+# 既存データの削除（注意：全データが削除されます）
+python manage.py flush
+python manage.py migrate
+python manage.py loaddata demo_data.json
 ```
 
 ## 開発サーバーの起動

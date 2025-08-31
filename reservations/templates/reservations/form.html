@@ -371,7 +371,7 @@
                         <option value="">選択してください</option>
                         {% for item in items %}
                             <option value="{{ item.id }}" 
-                                    data-image-url="{% if item.get_primary_image %}{{ item.get_primary_image.get_thumbnail_url|default:item.get_primary_image.image.url }}{% endif %}"
+                                    data-image-url="{% if item.get_primary_image %}{{ item.get_primary_image.get_dropdown_thumbnail_url }}{% endif %}"
                                     data-image-alt="{% if item.get_primary_image %}{{ item.get_primary_image.alt_text|default:item.name }}{% endif %}"
                                     {% if form_data.item == item.id|stringformat:"s" %}selected{% endif %}>
                                 {{ item.name }}
@@ -623,36 +623,24 @@
             }
         });
         
-        // 物品画像表示を更新する関数（高解像度対応）
+        // 物品画像表示を更新する関数（160pxドロップダウン画像使用）
         function updateItemImageDisplay(selectedOption) {
             const imageContainer = document.getElementById('selected-item-image');
             const itemImage = document.getElementById('item-image');
             const itemName = document.getElementById('item-name');
             
             if (selectedOption.value && selectedOption.dataset.imageUrl) {
-                // 高解像度画像を使用（サムネイルではなく元画像）
-                let highResImageUrl = selectedOption.dataset.imageUrl;
-                
-                // サムネイルURLの場合は元画像URLに変換
-                if (highResImageUrl.includes('_thumbnail') || highResImageUrl.includes('/thumbnail/')) {
-                    highResImageUrl = highResImageUrl.replace('_thumbnail', '').replace('/thumbnail/', '/');
-                }
-                
-                // Retina対応のための画像読み込み
-                const img = new Image();
-                img.onload = function() {
-                    itemImage.src = highResImageUrl;
-                    itemImage.style.imageRendering = 'auto'; // 高品質レンダリング
-                };
-                img.onerror = function() {
-                    // 高解像度画像が見つからない場合は元のURLを使用
-                    itemImage.src = selectedOption.dataset.imageUrl;
-                };
-                img.src = highResImageUrl;
-                
+                // 160pxドロップダウン画像を直接使用
+                itemImage.src = selectedOption.dataset.imageUrl;
                 itemImage.alt = selectedOption.dataset.imageAlt || selectedOption.text;
-                // 大きな画像のURLをdata属性に保存
-                itemImage.setAttribute('data-large-url', highResImageUrl);
+                
+                // モーダル用に元画像URLを設定（ドロップダウン→元画像に変換）
+                let originalImageUrl = selectedOption.dataset.imageUrl;
+                if (originalImageUrl.includes('_dropdown')) {
+                    originalImageUrl = originalImageUrl.replace('_dropdown', '').replace('/dropdown/', '/');
+                }
+                itemImage.setAttribute('data-large-url', originalImageUrl);
+                
                 itemName.textContent = selectedOption.text;
                 imageContainer.classList.remove('hidden');
                 imageContainer.classList.add('fade-in');

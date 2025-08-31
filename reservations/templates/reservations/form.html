@@ -239,6 +239,24 @@
         outline: none !important;
         box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.5) !important;
       }
+      
+      /* 高解像度画像表示の改善 */
+      .clickable-image {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: auto;
+        backface-visibility: hidden;
+        transform: translateZ(0);
+        -webkit-font-smoothing: subpixel-antialiased;
+      }
+      
+      /* Retina対応 */
+      @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .clickable-image {
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: auto;
+        }
+      }
     </style>
 </head>
 <body class="bg-zinc-100 text-zinc-600">
@@ -280,7 +298,7 @@
                 <div id="selected-item-image" class="hidden">
                     <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
                         <div class="flex-shrink-0">
-                            <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-md shadow-sm clickable-image" onclick="openImageModal(this)">
+                            <img id="item-image" src="" alt="" class="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 object-cover rounded-lg shadow-md clickable-image hover:shadow-lg transition-shadow" onclick="openImageModal(this)">
                         </div>
                         <div id="item-info">
                             <p class="font-medium text-base text-gray-900" id="item-name"></p>
@@ -605,18 +623,36 @@
             }
         });
         
-        // 物品画像表示を更新する関数
+        // 物品画像表示を更新する関数（高解像度対応）
         function updateItemImageDisplay(selectedOption) {
             const imageContainer = document.getElementById('selected-item-image');
             const itemImage = document.getElementById('item-image');
             const itemName = document.getElementById('item-name');
             
             if (selectedOption.value && selectedOption.dataset.imageUrl) {
-                // 画像がある場合
-                itemImage.src = selectedOption.dataset.imageUrl;
+                // 高解像度画像を使用（サムネイルではなく元画像）
+                let highResImageUrl = selectedOption.dataset.imageUrl;
+                
+                // サムネイルURLの場合は元画像URLに変換
+                if (highResImageUrl.includes('_thumbnail') || highResImageUrl.includes('/thumbnail/')) {
+                    highResImageUrl = highResImageUrl.replace('_thumbnail', '').replace('/thumbnail/', '/');
+                }
+                
+                // Retina対応のための画像読み込み
+                const img = new Image();
+                img.onload = function() {
+                    itemImage.src = highResImageUrl;
+                    itemImage.style.imageRendering = 'auto'; // 高品質レンダリング
+                };
+                img.onerror = function() {
+                    // 高解像度画像が見つからない場合は元のURLを使用
+                    itemImage.src = selectedOption.dataset.imageUrl;
+                };
+                img.src = highResImageUrl;
+                
                 itemImage.alt = selectedOption.dataset.imageAlt || selectedOption.text;
-                // 大きな画像のURLをdata属性に保存（フォームの場合は既に大きなサイズ）
-                itemImage.setAttribute('data-large-url', selectedOption.dataset.imageUrl);
+                // 大きな画像のURLをdata属性に保存
+                itemImage.setAttribute('data-large-url', highResImageUrl);
                 itemName.textContent = selectedOption.text;
                 imageContainer.classList.remove('hidden');
                 imageContainer.classList.add('fade-in');

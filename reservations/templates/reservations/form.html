@@ -132,7 +132,6 @@
         max-height: 300px;
         overflow-y: auto;
         z-index: 50;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         display: none;
       }
       
@@ -298,7 +297,7 @@
                 <div id="selected-item-image" class="hidden">
                     <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border">
                         <div class="flex-shrink-0">
-                            <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-lg shadow-md clickable-image hover:shadow-lg transition-shadow" onclick="openImageModal(this)">
+                            <img id="item-image" src="" alt="" class="w-20 h-20 object-cover rounded-lg clickable-image transition-opacity" onclick="openImageModal(this)">
                         </div>
                         <div id="item-info">
                             <p class="font-medium text-base text-gray-900" id="item-name"></p>

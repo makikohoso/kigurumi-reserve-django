@@ -135,12 +135,14 @@ class RentalItemImage(models.Model):
                 thumb.thumbnail((150, 150), Image.Resampling.LANCZOS)
                 thumb.save(thumb_path, quality=85, optimize=True)
                 
-                # ドロップダウン用小サムネイル生成 (48x48)
+                # ドロップダウン用高解像度サムネイル生成 (160x160)
                 dropdown_path = self.get_dropdown_thumbnail_path()
                 os.makedirs(os.path.dirname(dropdown_path), exist_ok=True)
                 
                 dropdown = img.copy()
-                dropdown.thumbnail((48, 48), Image.Resampling.LANCZOS)
+                from django.conf import settings
+                dropdown_size = getattr(settings, 'DROPDOWN_THUMBNAIL_SIZE', (160, 160))
+                dropdown.thumbnail(dropdown_size, Image.Resampling.LANCZOS)
                 dropdown.save(dropdown_path, quality=85, optimize=True)
         except Exception as e:
             print(f"Image processing error: {e}")

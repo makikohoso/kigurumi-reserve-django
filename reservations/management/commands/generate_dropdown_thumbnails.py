@@ -5,7 +5,7 @@ from PIL import Image
 
 
 class Command(BaseCommand):
-    help = '既存の画像にドロップダウン用48x48pxサムネイルを生成'
+    help = '既存の画像にドロップダウン用160x160pxサムネイルを生成'
 
     def handle(self, *args, **options):
         images = RentalItemImage.objects.all()
@@ -38,17 +38,19 @@ class Command(BaseCommand):
         )
     
     def generate_dropdown_thumbnail(self, image_instance):
-        """48x48pxドロップダウン用サムネイルを生成"""
+        """160x160pxドロップダウン用サムネイルを生成"""
         try:
             img_path = image_instance.image.path
             
             with Image.open(img_path) as img:
-                # ドロップダウン用サムネイル生成 (48x48)
+                # ドロップダウン用サムネイル生成 (160x160)
                 dropdown_path = image_instance.get_dropdown_thumbnail_path()
                 os.makedirs(os.path.dirname(dropdown_path), exist_ok=True)
                 
                 dropdown = img.copy()
-                dropdown.thumbnail((48, 48), Image.Resampling.LANCZOS)
+                from django.conf import settings
+                dropdown_size = getattr(settings, 'DROPDOWN_THUMBNAIL_SIZE', (160, 160))
+                dropdown.thumbnail(dropdown_size, Image.Resampling.LANCZOS)
                 dropdown.save(dropdown_path, quality=85, optimize=True)
                 
         except Exception as e:

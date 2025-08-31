@@ -150,6 +150,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp']
 THUMBNAIL_SIZE = (150, 150)
+DROPDOWN_THUMBNAIL_SIZE = (160, 160)  # ドロップダウン用高解像度サムネイル
 MAX_IMAGE_SIZE = (800, 600)
 
 # File Upload Security

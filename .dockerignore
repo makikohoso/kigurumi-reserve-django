@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Database (開発用のみ、本番は除外しない)
+db.sqlite3
+
+# Static files (collectstaticで生成されるため)
+staticfiles/
+
+# DO NOT IGNORE media/ - we need it for images!
+# media/

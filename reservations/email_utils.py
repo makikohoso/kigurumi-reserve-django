@@ -19,7 +19,8 @@ def send_reservation_emails(reservation):
         # データベースから設定を取得
         email_settings = EmailSettings.get_current_settings()
         logger.info(f"メール設定取得完了: from={email_settings.from_email}")
-        
+        print(f"DEBUG: メール設定 - 顧客通知={email_settings.send_customer_notification}, 管理者通知={email_settings.send_admin_notification}")
+
         # 予約者へのメール送信
         if email_settings.send_customer_notification:
             logger.info(f"顧客メール送信開始: to={reservation.email}")
@@ -44,6 +45,11 @@ def send_reservation_emails(reservation):
 
 def send_customer_email(reservation, email_settings):
     """予約者へのメール送信"""
+    from django.conf import settings
+    print(f"DEBUG: SMTP設定 - EMAIL_BACKEND={settings.EMAIL_BACKEND}")
+    if hasattr(settings, 'EMAIL_HOST'):
+        print(f"DEBUG: SMTP設定 - EMAIL_HOST={settings.EMAIL_HOST}, EMAIL_PORT={settings.EMAIL_PORT}")
+
     subject = f"【予約完了】{email_settings.from_name} - {reservation.confirmation_number}"
     
     # テキストメール内容
@@ -74,13 +80,17 @@ def send_customer_email(reservation, email_settings):
 """
 
     # メール送信
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=email_settings.get_from_email(),
-        recipient_list=[reservation.email],
-        fail_silently=True,  # メール送信失敗でも予約処理は続行
-    )
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=email_settings.get_from_email(),
+            recipient_list=[reservation.email],
+            fail_silently=False,  # エラーを確認するため一時的にFalseに変更
+        )
+        print(f"DEBUG: 顧客メール送信成功 to={reservation.email}")
+    except Exception as e:
+        print(f"DEBUG: 顧客メール送信エラー: {type(e).__name__}: {str(e)}")
 
 
 def send_admin_email(reservation, admin_emails, email_settings):
@@ -112,11 +122,16 @@ def send_admin_email(reservation, admin_emails, email_settings):
 
     # メール送信
     logger.info(f"通知先メール送信実行: recipient_list={admin_emails}")
-    send_mail(
-        subject=subject,
-        message=message,
-        from_email=email_settings.get_from_email(),
-        recipient_list=admin_emails,
-        fail_silently=True,  # メール送信失敗でも予約処理は続行
-    )
-    logger.info(f"通知先メール送信完了: {reservation.confirmation_number}, 送信先: {len(admin_emails)}件")
+    print(f"DEBUG: 管理者メール送信開始 to={admin_emails}")
+    try:
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=email_settings.get_from_email(),
+            recipient_list=admin_emails,
+            fail_silently=False,  # エラーを確認するため一時的にFalseに変更
+        )
+        print(f"DEBUG: 管理者メール送信成功 to={admin_emails}")
+        logger.info(f"通知先メール送信完了: {reservation.confirmation_number}, 送信先: {len(admin_emails)}件")
+    except Exception as e:
+        print(f"DEBUG: 管理者メール送信エラー: {type(e).__name__}: {str(e)}")

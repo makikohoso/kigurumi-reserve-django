@@ -400,10 +400,13 @@ def reservation_complete(request):
             )
             
             # メール送信（エラーが起きても予約自体は成功として扱う）
+            print(f"DEBUG: 予約作成完了、メール送信処理を開始します - 予約番号: {reservation.confirmation_number}")
             try:
                 send_reservation_emails(reservation)
+                print(f"DEBUG: メール送信処理が完了しました - 予約番号: {reservation.confirmation_number}")
                 logger.info(f"予約完了メール送信成功: {reservation.confirmation_number}")
             except Exception as e:
+                print(f"DEBUG: メール送信でエラーが発生: {str(e)} - 予約番号: {reservation.confirmation_number}")
                 logger.error(f"メール送信失敗: {str(e)} - 予約番号: {reservation.confirmation_number}")
                 # メール送信失敗してもユーザーには成功画面を表示
             

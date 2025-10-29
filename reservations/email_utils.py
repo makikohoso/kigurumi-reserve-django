@@ -11,6 +11,7 @@ def send_reservation_emails(reservation):
     - 予約者にメール送信
     - 管理者にメール送信
     """
+    print(f"DEBUG: send_reservation_emails関数が呼ばれました - 予約番号: {reservation.confirmation_number}")
     logger.info(f"=== メール送信処理開始: 予約番号 {reservation.confirmation_number} ===")
     try:
         from .models import EmailSettings, AdminEmail

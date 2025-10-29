@@ -229,22 +229,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'audit_file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'audit.log',
-            'maxBytes': 10*1024*1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'security_file': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'security.log',
-            'maxBytes': 10*1024*1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -253,12 +237,12 @@ LOGGING = {
     },
     'loggers': {
         'audit': {
-            'handlers': ['audit_file', 'console'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'security': {
-            'handlers': ['security_file', 'console'],
+            'handlers': ['console'],
             'level': 'WARNING',
             'propagate': False,
         },

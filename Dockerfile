@@ -21,9 +21,6 @@ COPY . .
 # 静的ファイルの収集
 RUN python manage.py collectstatic --noinput
 
-# ログディレクトリの作成
-RUN mkdir -p logs
-
 # ポート8000を公開
 EXPOSE 8000
 

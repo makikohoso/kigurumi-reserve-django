@@ -18,12 +18,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードのコピー
 COPY . .
 
-# 静的ファイルの収集とマイグレーション
+# 静的ファイルの収集
 RUN python manage.py collectstatic --noinput
-RUN python manage.py migrate --noinput
+
+# entrypointスクリプトをコピーして実行権限を付与
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # ポート8000を公開
 EXPOSE 8000
 
-# 本番環境でのGUnicornサーバー起動
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "120", "config.wsgi:application"]
+# 起動時にマイグレーションを実行してからgunicorn起動
+ENTRYPOINT ["/entrypoint.sh"]

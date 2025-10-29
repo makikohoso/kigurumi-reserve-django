@@ -18,8 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードのコピー
 COPY . .
 
-# 静的ファイルの収集
+# 静的ファイルの収集とマイグレーション
 RUN python manage.py collectstatic --noinput
+RUN python manage.py migrate --noinput
 
 # ポート8000を公開
 EXPOSE 8000

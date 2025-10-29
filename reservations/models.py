@@ -55,6 +55,7 @@ class RentalItem(models.Model):
     class Meta:
         verbose_name = "レンタル物品"
         verbose_name_plural = "レンタル物品"
+        ordering = ['name']  # 名前順にソート
 
 def rental_item_image_path(instance, filename):
     """画像のアップロードパスを生成"""

@@ -10,7 +10,9 @@ urlpatterns = [
     path('favicon.ico', RedirectView.as_view(url='/static/admin/img/favicon.png', permanent=True)),
 ]
 
-# Development environment static and media file serving
+# Media files serving (本番環境でも提供)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Development environment static file serving
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

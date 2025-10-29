@@ -170,7 +170,8 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 
 # Media Files Configuration
-MEDIA_URL = '/media/'
+# 本番環境では静的ファイルとして提供（WhiteNoise経由）
+MEDIA_URL = '/static/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Image Upload Settings

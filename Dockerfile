@@ -24,6 +24,9 @@ COPY media/ /app/media/
 # 静的ファイルの収集
 RUN python manage.py collectstatic --noinput
 
+# メディアファイルを静的ファイルディレクトリにコピー（本番環境用）
+RUN mkdir -p /app/staticfiles/media && cp -r /app/media/* /app/staticfiles/media/
+
 # entrypointスクリプトをコピーして実行権限を付与
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

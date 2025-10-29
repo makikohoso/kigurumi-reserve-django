@@ -17,16 +17,9 @@ export ALLOWED_HOSTS="${ALLOWED_HOSTS:-.onrender.com,localhost,127.0.0.1}"
 echo "DEBUG is set to: $DEBUG"
 echo "ALLOWED_HOSTS is set to: $ALLOWED_HOSTS"
 
-# .envファイルも作成（念のため）
-cat > .env << EOF
-SECRET_KEY=$SECRET_KEY
-DEBUG=$DEBUG
-ALLOWED_HOSTS=$ALLOWED_HOSTS
-DATABASE_URL=${DATABASE_URL:-}
-EOF
+# ログディレクトリの作成（エラー回避）
+mkdir -p logs
 
-echo ".env file created. Contents (without SECRET_KEY):"
-grep -v SECRET_KEY .env || true
-
+# collectstatic と migrate を実行（デフォルトのsettings.pyを使用）
 python manage.py collectstatic --no-input
 python manage.py migrate

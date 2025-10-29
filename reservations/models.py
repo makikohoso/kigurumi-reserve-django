@@ -414,4 +414,7 @@ class AdminEmail(models.Model):
     @classmethod
     def get_active_emails(cls):
         """有効な通知先メールアドレス一覧を取得"""
-        return cls.objects.filter(is_active=True).values_list('email', flat=True)
+        return cls.objects.filter(
+            is_active=True,
+            email__isnull=False
+        ).exclude(email='').values_list('email', flat=True)

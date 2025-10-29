@@ -144,13 +144,15 @@ STATICFILES_DIRS = [
     BASE_DIR / 'reservations/static',
 ]
 
-# WhiteNoise settings for static files
+# Storage settings
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # 開発環境では通常のストレージ、本番環境ではWhiteNoiseを使用
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG
+                   else "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 

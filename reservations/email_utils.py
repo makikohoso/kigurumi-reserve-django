@@ -11,19 +11,24 @@ def send_reservation_emails(reservation):
     - 予約者にメール送信
     - 管理者にメール送信
     """
+    logger.info(f"=== メール送信処理開始: 予約番号 {reservation.confirmation_number} ===")
     try:
         from .models import EmailSettings, AdminEmail
-        
+
         # データベースから設定を取得
         email_settings = EmailSettings.get_current_settings()
+        logger.info(f"メール設定取得完了: from={email_settings.from_email}")
         
         # 予約者へのメール送信
         if email_settings.send_customer_notification:
+            logger.info(f"顧客メール送信開始: to={reservation.email}")
             send_customer_email(reservation, email_settings)
+            logger.info(f"顧客メール送信完了: to={reservation.email}")
         
         # 管理者へのメール送信
         if email_settings.send_admin_notification:
             admin_emails = list(AdminEmail.get_active_emails())
+            logger.info(f"取得した通知先メールアドレス: {admin_emails} (件数: {len(admin_emails)})")
             if admin_emails:
                 send_admin_email(reservation, admin_emails, email_settings)
             else:

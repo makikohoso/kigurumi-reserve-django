@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードのコピー
 COPY . .
 
+# 画像ファイルを明示的にコピー（重要：Gitから取得）
+COPY media/ /app/media/
+
 # 静的ファイルの収集
 RUN python manage.py collectstatic --noinput
 

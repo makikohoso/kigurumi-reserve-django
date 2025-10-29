@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: kigurumi-reserve-django
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: PYTHON_VERSION
+        value: 3.11.10
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kigurumi-db
+          property: connectionString
+
+databases:
+  - name: kigurumi-db
+    databaseName: kigurumi_reserve
+    user: kigurumi_user

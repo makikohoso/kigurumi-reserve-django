@@ -193,12 +193,15 @@ def reserve_form(request):
                     # セッションにデータを保存
                     request.session['pending_reservation'] = reservation_data
                     request.session.modified = True
-                    
+
+                    # セッションを明示的に保存（重要：リダイレクト前に必須）
+                    request.session.save()
+
                     # デバッグ情報
                     if settings.DEBUG:
                         print(f"Debug - Saving reservation data to session: {reservation_data}")
                         print(f"Debug - Session key: {request.session.session_key}")
-                    
+
                     # サーバーサイドリダイレクトで確認画面へ
                     return redirect('reservation_confirm')
                         

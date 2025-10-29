@@ -14,17 +14,6 @@ from pathlib import Path
 import os
 import dj_database_url
 
-# python-decoupleは本番環境では使わない（環境変数を直接読み取る）
-try:
-    from decouple import config
-except ImportError:
-    # decoupleが使えない場合はos.environを使う
-    def config(key, default=None, cast=None):
-        value = os.environ.get(key, default)
-        if cast and value is not None:
-            return cast(value)
-        return value
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 

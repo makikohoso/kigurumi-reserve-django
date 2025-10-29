@@ -192,14 +192,22 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True  # 毎リクエストでセッションを保存
 
 # Email Configuration
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # 開発環境用（コンソール出力）
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # 本番環境用
-EMAIL_HOST = 'smtp.lolipop.jp'  # ロリポップ SMTP
-EMAIL_PORT = 587
-EMAIL_USE_SSL = False
-EMAIL_USE_TLS = True
+# 環境変数が設定されていない場合はコンソールバックエンドを使用
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    # SMTP設定がある場合はSMTPバックエンドを使用
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.lolipop.jp'  # ロリポップ SMTP
+    EMAIL_PORT = 587
+    EMAIL_USE_SSL = False
+    EMAIL_USE_TLS = True
+    EMAIL_TIMEOUT = 10  # SMTPタイムアウト（秒）
+else:
+    # SMTP設定がない場合はコンソールバックエンドを使用（開発環境用）
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 DEFAULT_FROM_EMAIL = '予約システム <noreply@mkk-8.work>'
 
 # Email Settings

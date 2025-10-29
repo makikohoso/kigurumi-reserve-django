@@ -73,7 +73,7 @@ def send_customer_email(reservation, email_settings):
         message=message,
         from_email=email_settings.get_from_email(),
         recipient_list=[reservation.email],
-        fail_silently=False,
+        fail_silently=True,  # メール送信失敗でも予約処理は続行
     )
 
 
@@ -111,6 +111,6 @@ def send_admin_email(reservation, admin_emails, email_settings):
         message=message,
         from_email=email_settings.get_from_email(),
         recipient_list=admin_emails,
-        fail_silently=False,
+        fail_silently=True,  # メール送信失敗でも予約処理は続行
     )
     logger.info(f"通知先メール送信完了: {reservation.confirmation_number}, 送信先: {len(admin_emails)}件")

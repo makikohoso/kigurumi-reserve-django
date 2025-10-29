@@ -19,10 +19,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 静的ファイルの収集
-RUN python manage.py collectstatic --noinput --settings=config.settings_production
+RUN python manage.py collectstatic --noinput
 
 # ログディレクトリの作成
-RUN mkdir -p /var/log/django
+RUN mkdir -p logs
 
 # ポート8000を公開
 EXPOSE 8000

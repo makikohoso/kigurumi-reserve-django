@@ -1,0 +1,117 @@
+[
+{
+  "model": "reservations.rentalitem",
+  "pk": 1,
+  "fields": {
+    "name": "レンタル物品A",
+    "is_active": true,
+    "total_stock": 3,
+    "warning_threshold": 2
+  }
+},
+{
+  "model": "reservations.rentalitem",
+  "pk": 2,
+  "fields": {
+    "name": "レンタル物品B",
+    "is_active": true,
+    "total_stock": 3,
+    "warning_threshold": 2
+  }
+},
+{
+  "model": "reservations.rentalitem",
+  "pk": 3,
+  "fields": {
+    "name": "レンタル物品C",
+    "is_active": true,
+    "total_stock": 3,
+    "warning_threshold": 2
+  }
+},
+{
+  "model": "reservations.rentalitem",
+  "pk": 4,
+  "fields": {
+    "name": "レンタル物品D",
+    "is_active": true,
+    "total_stock": 3,
+    "warning_threshold": 2
+  }
+},
+{
+  "model": "reservations.rentalitem",
+  "pk": 5,
+  "fields": {
+    "name": "レンタル物品E",
+    "is_active": true,
+    "total_stock": 3,
+    "warning_threshold": 2
+  }
+},
+{
+  "model": "reservations.rentalitemimage",
+  "pk": 1,
+  "fields": {
+    "item": 1,
+    "image": "rental_items/1_0_c529b004.png",
+    "alt_text": "",
+    "order": 0,
+    "is_primary": true,
+    "created_at": "2025-08-28T13:09:47.217Z",
+    "updated_at": "2025-08-28T13:10:08.359Z"
+  }
+},
+{
+  "model": "reservations.rentalitemimage",
+  "pk": 2,
+  "fields": {
+    "item": 2,
+    "image": "rental_items/2_0_984c354b.png",
+    "alt_text": "",
+    "order": 0,
+    "is_primary": true,
+    "created_at": "2025-08-28T13:10:47.739Z",
+    "updated_at": "2025-08-28T13:10:47.739Z"
+  }
+},
+{
+  "model": "reservations.rentalitemimage",
+  "pk": 3,
+  "fields": {
+    "item": 3,
+    "image": "rental_items/3_0_0e902192.png",
+    "alt_text": "",
+    "order": 0,
+    "is_primary": true,
+    "created_at": "2025-08-28T13:22:17.095Z",
+    "updated_at": "2025-08-28T13:22:17.095Z"
+  }
+},
+{
+  "model": "reservations.rentalitemimage",
+  "pk": 4,
+  "fields": {
+    "item": 4,
+    "image": "rental_items/4_0_216dacb1.png",
+    "alt_text": "",
+    "order": 0,
+    "is_primary": true,
+    "created_at": "2025-08-28T13:23:55.393Z",
+    "updated_at": "2025-08-28T13:23:55.394Z"
+  }
+},
+{
+  "model": "reservations.rentalitemimage",
+  "pk": 6,
+  "fields": {
+    "item": 5,
+    "image": "rental_items/5_0_aa0e641c.jpg",
+    "alt_text": "",
+    "order": 0,
+    "is_primary": true,
+    "created_at": "2025-08-29T21:17:37.404Z",
+    "updated_at": "2025-08-29T21:17:37.404Z"
+  }
+}
+]

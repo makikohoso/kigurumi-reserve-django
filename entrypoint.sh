@@ -15,5 +15,16 @@ else:
     print('Superuser already exists')
 EOF
 
+echo "Loading initial data if needed..."
+python manage.py shell << EOF
+from reservations.models import RentalItem
+if RentalItem.objects.count() == 0:
+    import os
+    os.system('python manage.py loaddata fixtures/initial_items.json')
+    print('Initial items loaded')
+else:
+    print('Items already exist, skipping loaddata')
+EOF
+
 echo "Starting gunicorn..."
 exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 config.wsgi:application

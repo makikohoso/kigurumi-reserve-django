@@ -4,6 +4,24 @@ set -e
 echo "Running migrations..."
 python manage.py migrate --noinput
 
+# データベースをリセットする場合（環境変数RESET_DB=trueの時のみ）
+if [ "$RESET_DB" = "true" ]; then
+    echo "Resetting database (RESET_DB=true)..."
+    python manage.py shell << EOF
+from reservations.models import RentalItem, RentalItemImage, Reservation
+from django.contrib.auth import get_user_model
+User = get_user_model()
+
+# 既存データを削除
+Reservation.objects.all().delete()
+RentalItemImage.objects.all().delete()
+RentalItem.objects.all().delete()
+User.objects.filter(username='admin').delete()
+
+print('Database cleared')
+EOF
+fi
+
 echo "Creating superuser if not exists..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
